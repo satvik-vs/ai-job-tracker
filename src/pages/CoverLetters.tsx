@@ -4,10 +4,9 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
 import { ProgressScreen } from '../components/ui/ProgressScreen';
-import { Mail, Sparkles, Copy, Download, Save, Send, Zap, Target, Brain, MessageSquare } from 'lucide-react';
+import { Mail, Sparkles, Copy, Download, Send, Zap, Target, Brain, MessageSquare } from 'lucide-react';
 import { useJobApplications } from '../hooks/useJobApplications';
 import { useLinkedInJobs } from '../hooks/useLinkedInJobs';
-import { useOpenRouterAI } from '../hooks/useOpenRouterAI';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 
@@ -31,16 +30,13 @@ export function CoverLetters() {
     whyCompany: ''
   });
   
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [timeRemaining, setTimeRemaining] = useState(0);
+  const [generatedContent, setGeneratedContent] = useState('');
+  
   const { applications } = useJobApplications();
   const { jobs: linkedInJobs, loading: jobsLoading } = useLinkedInJobs();
-  const { 
-    loading, 
-    progress, 
-    timeRemaining, 
-    generatedContent, 
-    resetState,
-    setGeneratedContent 
-  } = useOpenRouterAI();
 
   // Combine job applications and LinkedIn jobs for the dropdown
   const allJobOptions = [
@@ -108,7 +104,9 @@ export function CoverLetters() {
   };
 
   const handleCancel = () => {
-    resetState();
+    setLoading(false);
+    setProgress(0);
+    setTimeRemaining(0);
   };
 
   const handleGenerate = async () => {
@@ -139,7 +137,7 @@ export function CoverLetters() {
             </h1>
             <p className="text-slate-400 mt-2 flex items-center space-x-2 text-sm lg:text-base">
               <Target className="w-4 h-4" />
-              <span>Create personalized, compelling cover letters powered by OpenRouter AI</span>
+              <span>Create personalized, compelling cover letters powered by Google Gemini AI</span>
             </p>
           </div>
 
@@ -149,8 +147,8 @@ export function CoverLetters() {
               <div className="flex items-center space-x-2">
                 <Brain className="w-4 h-4 lg:w-5 lg:h-5 text-primary-400" />
                 <div>
-                  <p className="text-xs lg:text-sm text-primary-300 font-medium">OpenRouter</p>
-                  <p className="text-xs text-slate-400">DeepSeek AI</p>
+                  <p className="text-xs lg:text-sm text-primary-300 font-medium">Google Gemini</p>
+                  <p className="text-xs text-slate-400">AI Powered</p>
                 </div>
               </div>
             </div>
@@ -300,7 +298,7 @@ export function CoverLetters() {
                   leftIcon={<Sparkles className="w-5 h-5" />}
                   variant="outline"
                 >
-                  Generate with OpenRouter AI
+                  Generate with Google Gemini
                 </Button>
               </div>
             </Card>
@@ -384,7 +382,7 @@ export function CoverLetters() {
           </motion.div>
         </div>
 
-        {/* OpenRouter Integration Info */}
+        {/* Google Gemini Integration Info */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -393,13 +391,13 @@ export function CoverLetters() {
           <Card className="bg-gradient-to-r from-primary-900/20 to-secondary-900/20 border border-primary-600/30">
             <h3 className="text-lg font-semibold text-slate-100 mb-4 flex items-center space-x-2">
               <Zap className="w-5 h-5 text-primary-400" />
-              <span>🔗 OpenRouter AI Integration</span>
+              <span>🔗 Google Gemini AI Integration</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-slate-300">
               <div>
                 <h4 className="font-medium text-slate-200 mb-2">How it works:</h4>
                 <ul className="space-y-1 text-slate-400">
-                  <li>• Sends data to OpenRouter API</li>
+                  <li>• Sends data to Google Gemini API</li>
                   <li>• AI processes job requirements</li>
                   <li>• Generates personalized content</li>
                   <li>• Returns optimized cover letter</li>

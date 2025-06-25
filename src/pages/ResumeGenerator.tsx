@@ -24,7 +24,7 @@ export function ResumeGenerator() {
   const [showSettings, setShowSettings] = useState(false);
   const [settingsForm, setSettingsForm] = useState({
     apiKey: '',
-    modelId: 'deepseek/deepseek-r1-0528:free'
+    modelId: 'gemini-2.0-flash'
   });
   
   const { applications } = useJobApplications();
@@ -231,7 +231,7 @@ The system would parse the actual PDF/DOC file and extract the text content for 
             </h1>
             <p className="text-slate-400 mt-2 flex items-center space-x-2 text-sm lg:text-base">
               <Target className="w-4 h-4" />
-              <span>Analyze your resume against job requirements with OpenRouter AI</span>
+              <span>Analyze your resume against job requirements with Google Gemini AI</span>
             </p>
           </div>
 
@@ -454,7 +454,7 @@ The system would parse the actual PDF/DOC file and extract the text content for 
                       </div>
                       <h3 className="text-lg font-medium text-slate-300 mb-2">Ready to Analyze</h3>
                       <p className="text-slate-400 max-w-sm text-sm">
-                        Select a resume (optional) and enter a job description, then click "Analyze with OpenRouter AI" to get personalized suggestions
+                        Select a resume (optional) and enter a job description, then click "Analyze with Google Gemini" to get personalized suggestions
                       </p>
                     </div>
                   </div>
@@ -464,7 +464,7 @@ The system would parse the actual PDF/DOC file and extract the text content for 
           </motion.div>
         </div>
 
-        {/* OpenRouter Integration Info */}
+        {/* Google Gemini Integration Info */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
