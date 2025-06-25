@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { N8N_RAILWAY_CONFIG } from '../lib/n8nConfig';
+import { N8N_RAILWAY_CONFIG } from '../lib/n8nRailwayConfig';
 import toast from 'react-hot-toast';
 
 interface N8NRequest {
@@ -22,7 +22,7 @@ interface N8NRequest {
   };
 }
 
-export function useN8NIntegration() {
+export function useN8NRailwayIntegration() {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(0);
@@ -35,8 +35,7 @@ export function useN8NIntegration() {
 
   const sendToN8N = async (
     type: 'resume' | 'cover-letter',
-    data: any,
-    webhookUrl: string
+    data: any
   ): Promise<string> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
@@ -52,28 +51,30 @@ export function useN8NIntegration() {
       data
     };
 
-    console.log('🚀 Sending to N8N Railway:', payload);
+    console.log('🚀 Sending to N8N via Supabase Edge Function:', payload);
 
-    const response = await fetch(webhookUrl, {
+    // Send to Supabase edge function which will trigger N8N
+    const response = await fetch(N8N_RAILWAY_CONFIG.TRIGGER_FUNCTION_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'JobTracker-AI/1.0',
-        'X-Request-Source': 'jobtracker-ai',
-        'X-Railway-Domain': 'tracker.satvik.live'
+        ...N8N_RAILWAY_CONFIG.HEADERS,
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
       },
       body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      throw new Error(`N8N Railway webhook failed: ${response.status} ${response.statusText} - ${errorText}`);
+      throw new Error(`Supabase edge function failed: ${response.status} ${response.statusText} - ${errorText}`);
     }
+
+    const result = await response.json();
+    console.log('✅ N8N trigger response:', result);
 
     return requestId;
   };
 
-  const startProgressTimer = (duration: number = 240) => {
+  const startProgressTimer = (duration: number = 300) => {
     setTimeRemaining(duration);
     setProgress(0);
     
@@ -106,19 +107,16 @@ export function useN8NIntegration() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Use the Railway webhook URL directly
-      const webhookUrl = N8N_RAILWAY_CONFIG.WEBHOOK_URL;
-      
-      // Send request to N8N
-      const requestId = await sendToN8N(type, formData, webhookUrl);
+      // Send request to N8N via Supabase edge function
+      const requestId = await sendToN8N(type, formData);
       setCurrentRequestId(requestId);
       
       // Start progress timer
-      const timer = startProgressTimer(65);
+      const timer = startProgressTimer(300); // 5 minutes
       
       // Start polling for response
       const pollForResponse = async () => {
-        const maxAttempts = 240; // 70 seconds max wait
+        const maxAttempts = 150; // 5 minutes max wait (150 * 2 seconds)
         let attempts = 0;
         
         const poll = async (): Promise<void> => {
@@ -151,7 +149,7 @@ export function useN8NIntegration() {
           }
           
           // Continue polling
-          setTimeout(poll, 1000);
+          setTimeout(poll, 2000); // Poll every 2 seconds
         };
         
         poll();
@@ -187,8 +185,9 @@ export function useN8NIntegration() {
         return {
           request_id: requestId,
           type: data.type,
-          status: 'success',
-          content: data.content
+          status: data.content.startsWith('Error:') ? 'error' : 'success',
+          content: data.content,
+          error_message: data.content.startsWith('Error:') ? data.content : undefined
         };
       }
 

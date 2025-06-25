@@ -5,17 +5,21 @@ export const N8N_RAILWAY_CONFIG = {
   DOMAIN: 'https://primary-production-130e0.up.railway.app',
   
   // Webhook endpoints
-  WEBHOOK_PATH: '/webhook-test/job-application-received',
+  WEBHOOK_PATH: '/webhook/job-application-received',
   
   // Full webhook URL for your Railway N8N instance
-  WEBHOOK_URL: 'https://primary-production-130e0.up.railway.app/webhook-test/job-application-received',
+  WEBHOOK_URL: 'https://primary-production-130e0.up.railway.app/webhook/job-application-received',
+  
+  // Supabase edge function URLs
+  TRIGGER_FUNCTION_URL: 'https://zeiivnxtkcqwlnmtxyfd.supabase.co/functions/v1/n8n-trigger',
+  RESPONSE_FUNCTION_URL: 'https://zeiivnxtkcqwlnmtxyfd.supabase.co/functions/v1/n8n-response',
   
   // Timeout settings
-  PROCESSING_TIMEOUT: 240000, // 75 seconds
-  POLL_INTERVAL: 1000, // 1 second
+  PROCESSING_TIMEOUT: 300000, // 5 minutes
+  POLL_INTERVAL: 2000, // 2 seconds
   
   // Progress settings
-  PROGRESS_DURATION: 240, // 70 seconds for progress bar
+  PROGRESS_DURATION: 300, // 5 minutes for progress bar
   
   // Request headers
   HEADERS: {
@@ -61,4 +65,5 @@ export interface N8NRailwayResponse {
     word_count?: number;
     personalization_score?: number;
   };
+  job_application_id?: string;
 }

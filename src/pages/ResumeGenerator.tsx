@@ -6,7 +6,8 @@ import { Input } from '../components/ui/Input';
 import { ProgressScreen } from '../components/ui/ProgressScreen';
 import { FileText, Sparkles, Copy, Download, Save, Zap, Target, Brain, TrendingUp } from 'lucide-react';
 import { useJobApplications } from '../hooks/useJobApplications';
-import { useN8NIntegration } from '../hooks/useN8NIntegration';
+import { useLinkedInJobs } from '../hooks/useLinkedInJobs';
+import { useN8NRailwayIntegration } from '../hooks/useN8NRailwayIntegration';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 
@@ -19,20 +20,33 @@ export function ResumeGenerator() {
   });
   
   const { applications } = useJobApplications();
+  const { jobs: linkedInJobs, loading: jobsLoading } = useLinkedInJobs();
   const { 
     loading, 
     progress, 
     timeRemaining, 
     generatedContent, 
     generateContent, 
-    resetState 
-  } = useN8NIntegration();
+    resetState,
+    setGeneratedContent 
+  } = useN8NRailwayIntegration();
 
-  const jobOptions = [
-    { value: '', label: 'Select a job application...' },
+  // Combine job applications and LinkedIn jobs for the dropdown
+  const allJobOptions = [
+    { value: '', label: 'Select a job...' },
+    // Job Applications
     ...applications.map(app => ({
-      value: app.id,
-      label: `${app.company_name} - ${app.job_title}`
+      value: `app_${app.id}`,
+      label: `📋 ${app.company_name} - ${app.job_title}`,
+      type: 'application',
+      data: app
+    })),
+    // LinkedIn Jobs
+    ...linkedInJobs.map(job => ({
+      value: `linkedin_${job.id}`,
+      label: `💼 ${job.company_name} - ${job.title}`,
+      type: 'linkedin',
+      data: job
     }))
   ];
 
@@ -41,14 +55,25 @@ export function ResumeGenerator() {
     
     // Auto-fill company and job title when job is selected
     if (field === 'selectedJobId' && value) {
-      const selectedApp = applications.find(app => app.id === value);
-      if (selectedApp) {
-        setFormData(prev => ({
-          ...prev,
-          companyName: selectedApp.company_name,
-          jobTitle: selectedApp.job_title,
-          jobDescription: selectedApp.notes || ''
-        }));
+      const selectedOption = allJobOptions.find(option => option.value === value);
+      if (selectedOption && selectedOption.data) {
+        if (selectedOption.type === 'application') {
+          const app = selectedOption.data as any;
+          setFormData(prev => ({
+            ...prev,
+            companyName: app.company_name,
+            jobTitle: app.job_title,
+            jobDescription: app.notes || ''
+          }));
+        } else if (selectedOption.type === 'linkedin') {
+          const job = selectedOption.data as any;
+          setFormData(prev => ({
+            ...prev,
+            companyName: job.company_name,
+            jobTitle: job.title,
+            jobDescription: job.description || ''
+          }));
+        }
       }
     }
   };
@@ -70,11 +95,21 @@ export function ResumeGenerator() {
     }
 
     try {
+      // Extract the actual job ID for selected_job_id
+      let selectedJobId = null;
+      if (formData.selectedJobId) {
+        if (formData.selectedJobId.startsWith('app_')) {
+          selectedJobId = formData.selectedJobId.replace('app_', '');
+        } else if (formData.selectedJobId.startsWith('linkedin_')) {
+          selectedJobId = formData.selectedJobId.replace('linkedin_', '');
+        }
+      }
+
       await generateContent('resume', {
         company_name: formData.companyName,
         job_title: formData.jobTitle,
         job_description: formData.jobDescription,
-        selected_job_id: formData.selectedJobId || null
+        selected_job_id: selectedJobId
       });
     } catch (error) {
       // Error handled in hook
@@ -164,7 +199,7 @@ export function ResumeGenerator() {
               <div className="flex items-center space-x-2">
                 <Sparkles className="w-4 h-4 lg:w-5 lg:h-5 text-accent-400" />
                 <div>
-                  <p className="text-xs lg:text-sm text-accent-300 font-medium">60-70s</p>
+                  <p className="text-xs lg:text-sm text-accent-300 font-medium">5 Min</p>
                   <p className="text-xs text-slate-400">Processing</p>
                 </div>
               </div>
@@ -192,19 +227,23 @@ export function ResumeGenerator() {
               <div className="space-y-4 lg:space-y-6 mobile-form">
                 <div className="w-full">
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Link to Job Application (Optional)
+                    Select Job (Optional)
                   </label>
                   <select
                     value={formData.selectedJobId}
                     onChange={(e) => handleInputChange('selectedJobId', e.target.value)}
+                    disabled={jobsLoading}
                     className="w-full px-4 py-3 bg-dark-800/30 border-slate-600/50 backdrop-blur-xl border rounded-lg focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                   >
-                    {jobOptions.map((option) => (
+                    {allJobOptions.map((option) => (
                       <option key={option.value} value={option.value} className="bg-dark-800 text-slate-100">
                         {option.label}
                       </option>
                     ))}
                   </select>
+                  {jobsLoading && (
+                    <p className="text-xs text-slate-400 mt-1">Loading LinkedIn jobs...</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -329,7 +368,7 @@ export function ResumeGenerator() {
           <Card className="bg-gradient-to-r from-primary-900/20 to-secondary-900/20 border border-primary-600/30">
             <h3 className="text-lg font-semibold text-slate-100 mb-4 flex items-center space-x-2">
               <Zap className="w-5 h-5 text-primary-400" />
-              <span>🔗 N8N Workflow Integration</span>
+              <span>🔗 N8N Railway Workflow Integration</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-slate-300">
               <div>
@@ -340,19 +379,19 @@ export function ResumeGenerator() {
                 <ul className="space-y-2 text-slate-400">
                   <li className="flex items-start space-x-2">
                     <span className="text-primary-400 mt-1">•</span>
-                    <span>Sends job data to your N8N webhook</span>
+                    <span>Sends job data to Supabase Edge Function</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <span className="text-primary-400 mt-1">•</span>
-                    <span>N8N processes with AI models</span>
+                    <span>Edge Function triggers N8N Railway workflow</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <span className="text-primary-400 mt-1">•</span>
-                    <span>Returns optimized resume suggestions</span>
+                    <span>N8N processes with OpenAI/DeepSeek AI</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <span className="text-primary-400 mt-1">•</span>
-                    <span>Real-time progress tracking</span>
+                    <span>Results stored back in Supabase</span>
                   </li>
                 </ul>
               </div>
@@ -364,7 +403,7 @@ export function ResumeGenerator() {
                 <ul className="space-y-2 text-slate-400">
                   <li className="flex items-start space-x-2">
                     <span className="text-secondary-400 mt-1">•</span>
-                    <span>60-70 second processing time</span>
+                    <span>5-minute processing time</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <span className="text-secondary-400 mt-1">•</span>
