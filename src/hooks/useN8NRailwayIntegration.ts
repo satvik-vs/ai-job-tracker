@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { N8N_RAILWAY_CONFIG } from '../lib/n8nRailwayConfig';
 import toast from 'react-hot-toast';
 
 interface N8NRequest {
@@ -53,21 +52,50 @@ export function useN8NRailwayIntegration() {
 
     console.log('🚀 Sending to N8N via Supabase Edge Function:', payload);
 
+    // Get the Supabase URL from environment
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase configuration missing. Please check your environment variables.');
+    }
+
+    const edgeFunctionUrl = `${supabaseUrl}/functions/v1/n8n-trigger`;
+    console.log('📡 Edge function URL:', edgeFunctionUrl);
+
     // Send to Supabase edge function which will trigger N8N
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/n8n-trigger`, {
+    const response = await fetch(edgeFunctionUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        'Authorization': `Bearer ${supabaseKey}`,
         'Accept': 'application/json'
       },
       body: JSON.stringify(payload)
     });
 
+    console.log('📊 Edge function response status:', response.status);
+    console.log('📊 Edge function response headers:', Object.fromEntries(response.headers.entries()));
+
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      console.error('Edge function error:', errorText);
-      throw new Error(`Edge function failed: ${response.status} ${response.statusText} - ${errorText}`);
+      console.error('❌ Edge function error:', errorText);
+      
+      // Try to parse error as JSON for better error messages
+      let errorMessage = `Edge function failed: ${response.status} ${response.statusText}`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error) {
+          errorMessage = errorJson.error;
+        }
+      } catch (e) {
+        // If not JSON, use the raw text
+        if (errorText) {
+          errorMessage += ` - ${errorText}`;
+        }
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const result = await response.json();
@@ -113,9 +141,13 @@ export function useN8NRailwayIntegration() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      console.log('🎯 Starting content generation:', { type, formData });
+
       // Send request to N8N via Supabase edge function
       const requestId = await sendToN8N(type, formData);
       setCurrentRequestId(requestId);
+      
+      console.log('✅ N8N request sent, request ID:', requestId);
       
       // Start progress timer
       const timer = startProgressTimer(300); // 5 minutes
@@ -134,6 +166,7 @@ export function useN8NRailwayIntegration() {
           }
           
           attempts++;
+          console.log(`🔍 Polling attempt ${attempts}/${maxAttempts} for request ${requestId}`);
           
           // Check if we received a response
           const response = await checkForResponse(requestId);
@@ -142,6 +175,8 @@ export function useN8NRailwayIntegration() {
             clearInterval(timer);
             setProgress(100);
             setTimeRemaining(0);
+            
+            console.log('🎉 Response received:', response);
             
             if (response.status === 'success' && response.content) {
               setGeneratedContent(response.content);
@@ -164,7 +199,7 @@ export function useN8NRailwayIntegration() {
       pollForResponse();
       
     } catch (error: any) {
-      console.error('Error generating content:', error);
+      console.error('❌ Error generating content:', error);
       setLoading(false);
       setProgress(0);
       setTimeRemaining(0);
@@ -188,6 +223,7 @@ export function useN8NRailwayIntegration() {
       }
 
       if (data && data.content) {
+        console.log('📨 Found response in database:', data);
         return {
           request_id: requestId,
           type: data.type,
