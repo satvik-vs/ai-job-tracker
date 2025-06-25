@@ -33,7 +33,7 @@ export function AuthForm() {
     e.preventDefault();
     
     if (connectionStatus !== 'connected') {
-      toast.error('Please configure Supabase connection first');
+      toast.error('Supabase connection failed. Please check configuration.');
       return;
     }
 
@@ -104,28 +104,24 @@ export function AuthForm() {
                     <span className="text-gray-400">VITE_SUPABASE_URL</span>
                     <span className={`text-xs px-2 py-1 rounded ${
                       import.meta.env.VITE_SUPABASE_URL && 
-                      !import.meta.env.VITE_SUPABASE_URL.includes('placeholder') &&
-                      !import.meta.env.VITE_SUPABASE_URL.includes('your_supabase_project_url')
+                      import.meta.env.VITE_SUPABASE_URL.includes('supabase.co')
                         ? 'bg-green-900 text-green-300' 
                         : 'bg-red-900 text-red-300'
                     }`}>
                       {import.meta.env.VITE_SUPABASE_URL && 
-                       !import.meta.env.VITE_SUPABASE_URL.includes('placeholder') &&
-                       !import.meta.env.VITE_SUPABASE_URL.includes('your_supabase_project_url') ? 'SET' : 'MISSING'}
+                       import.meta.env.VITE_SUPABASE_URL.includes('supabase.co') ? 'SET' : 'MISSING'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-400">VITE_SUPABASE_ANON_KEY</span>
                     <span className={`text-xs px-2 py-1 rounded ${
                       import.meta.env.VITE_SUPABASE_ANON_KEY && 
-                      !import.meta.env.VITE_SUPABASE_ANON_KEY.includes('placeholder') &&
-                      !import.meta.env.VITE_SUPABASE_ANON_KEY.includes('your_supabase_anon_key')
+                      import.meta.env.VITE_SUPABASE_ANON_KEY.startsWith('eyJ')
                         ? 'bg-green-900 text-green-300' 
                         : 'bg-red-900 text-red-300'
                     }`}>
                       {import.meta.env.VITE_SUPABASE_ANON_KEY && 
-                       !import.meta.env.VITE_SUPABASE_ANON_KEY.includes('placeholder') &&
-                       !import.meta.env.VITE_SUPABASE_ANON_KEY.includes('your_supabase_anon_key') ? 'SET' : 'MISSING'}
+                       import.meta.env.VITE_SUPABASE_ANON_KEY.startsWith('eyJ') ? 'SET' : 'MISSING'}
                     </span>
                   </div>
                 </div>

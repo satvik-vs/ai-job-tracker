@@ -57,6 +57,10 @@ export function useN8NRailwayIntegration() {
     const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
+      console.error('❌ Missing Supabase configuration:', {
+        url: supabaseUrl ? 'SET' : 'MISSING',
+        key: supabaseKey ? 'SET' : 'MISSING'
+      });
       throw new Error('Supabase configuration missing. Please check your environment variables.');
     }
 

@@ -1,14 +1,35 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
 
-// Supabase configuration
-const supabaseUrl = 'https://zeiivnxtkcqwlnmtxyfd.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplaWl2bnh0a2Nxd2xubXR4eWZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAwNzMyNzUsImV4cCI6MjA2NTY0OTI3NX0.lhahnsYyO9yEvnYTt-5fxZ6bxtDzqHSiOR0OABD_jSI';
+// Get Supabase configuration from environment variables
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Validate credentials
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase configuration');
+  console.error('Missing Supabase configuration:', {
+    url: supabaseUrl ? 'SET' : 'MISSING',
+    key: supabaseAnonKey ? 'SET' : 'MISSING'
+  });
+  throw new Error('Missing Supabase configuration. Please check your environment variables.');
 }
+
+// Validate URL format
+if (!supabaseUrl.startsWith('https://') || !supabaseUrl.includes('.supabase.co')) {
+  console.error('Invalid Supabase URL format:', supabaseUrl);
+  throw new Error('Invalid Supabase URL format');
+}
+
+// Validate key format
+if (!supabaseAnonKey.startsWith('eyJ')) {
+  console.error('Invalid Supabase anon key format');
+  throw new Error('Invalid Supabase anon key format');
+}
+
+console.log('✅ Supabase configuration loaded:', {
+  url: supabaseUrl,
+  keyLength: supabaseAnonKey.length
+});
 
 export const supabase = createClient<Database>(
   supabaseUrl,
@@ -54,6 +75,8 @@ export const getCurrentUserId = async () => {
 // Test connection
 export const testConnection = async () => {
   try {
+    console.log('🔍 Testing Supabase connection...');
+    
     // Simple health check
     const { data, error } = await supabase
       .from('profiles')
@@ -65,6 +88,7 @@ export const testConnection = async () => {
       return false;
     }
     
+    console.log('✅ Supabase connection successful');
     return true;
   } catch (error: any) {
     console.error('❌ Supabase connection error:', error.message);
