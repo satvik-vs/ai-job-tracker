@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 interface GeminiResponse {
   candidates: Array<{
@@ -113,12 +114,9 @@ Format as a comprehensive guide with clear sections and bullet points.`;
       // Use the provided API key or fall back to the default
       const effectiveApiKey = apiKey || DEFAULT_API_KEY;
       
-      const response = await fetch(`${GEMINI_BASE_URL}/models/${modelId}:generateContent?key=${effectiveApiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+      const response = await axios.post(
+        `${GEMINI_BASE_URL}/models/${modelId}:generateContent?key=${effectiveApiKey}`,
+        {
           contents: [
             {
               parts: [
@@ -132,16 +130,15 @@ Format as a comprehensive guide with clear sections and bullet points.`;
             temperature: 0.7,
             maxOutputTokens: 8192
           }
-        }),
-      });
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Gemini API error response:', errorText);
-        throw new Error(`Gemini API error: ${response.status}${errorText ? ` - ${errorText}` : ''}`);
-      }
-
-      const data: GeminiResponse = await response.json();
+      const data = response.data;
       const content = data.candidates[0]?.content?.parts[0]?.text;
 
       if (!content) {
@@ -196,12 +193,9 @@ Format as a comprehensive guide with clear sections and bullet points.`;
       // Use the provided API key or fall back to the default
       const effectiveApiKey = apiKey || DEFAULT_API_KEY;
       
-      const response = await fetch(`${GEMINI_BASE_URL}/models/${modelId}:generateContent?key=${effectiveApiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+      const response = await axios.post(
+        `${GEMINI_BASE_URL}/models/${modelId}:generateContent?key=${effectiveApiKey}`,
+        {
           contents: [
             {
               parts: [
@@ -215,16 +209,15 @@ Format as a comprehensive guide with clear sections and bullet points.`;
             temperature: 0.7,
             maxOutputTokens: 8192
           }
-        }),
-      });
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Gemini API error response:', errorText);
-        throw new Error(`Gemini API error: ${response.status}${errorText ? ` - ${errorText}` : ''}`);
-      }
-
-      const data: GeminiResponse = await response.json();
+      const data = response.data;
       const content = data.candidates[0]?.content?.parts[0]?.text;
 
       if (!content) {
