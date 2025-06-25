@@ -8,7 +8,7 @@ import { FileText, Sparkles, Copy, Download, Zap, Target, Brain, TrendingUp, Upl
 import { useJobApplications } from '../hooks/useJobApplications';
 import { useLinkedInJobs } from '../hooks/useLinkedInJobs';
 import { useDocuments } from '../hooks/useDocuments';
-import { useOpenRouterAI } from '../hooks/useOpenRouterAI';
+import { useGeminiAI } from '../hooks/useGeminiAI';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Modal } from '../components/ui/Modal';
@@ -41,7 +41,7 @@ export function ResumeGenerator() {
     apiKey,
     modelId,
     updateSettings
-  } = useOpenRouterAI();
+  } = useGeminiAI();
 
   // Filter documents to only show resumes
   const resumeDocuments = documents.filter(doc => doc.file_type === 'resume');
@@ -241,8 +241,8 @@ The system would parse the actual PDF/DOC file and extract the text content for 
               <div className="flex items-center space-x-2">
                 <Brain className="w-4 h-4 lg:w-5 lg:h-5 text-primary-400" />
                 <div>
-                  <p className="text-xs lg:text-sm text-primary-300 font-medium">OpenRouter AI</p>
-                  <p className="text-xs text-slate-400">Powered by DeepSeek</p>
+                  <p className="text-xs lg:text-sm text-primary-300 font-medium">Google Gemini</p>
+                  <p className="text-xs text-slate-400">Powered by Google AI</p>
                 </div>
               </div>
             </div>
@@ -383,11 +383,11 @@ The system would parse the actual PDF/DOC file and extract the text content for 
                   leftIcon={<Sparkles className="w-5 h-5" />}
                   glow
                 >
-                  Analyze with OpenRouter AI
+                  Analyze with Google Gemini
                 </Button>
                 {!apiKey && !settingsForm.apiKey && (
                   <p className="text-xs text-warning-400 mt-2 text-center">
-                    Please configure your OpenRouter API key in settings
+                    Please configure your Google Gemini API key in settings
                   </p>
                 )}
               </div>
@@ -473,7 +473,7 @@ The system would parse the actual PDF/DOC file and extract the text content for 
           <Card className="bg-gradient-to-r from-primary-900/20 to-secondary-900/20 border border-primary-600/30">
             <h3 className="text-lg font-semibold text-slate-100 mb-4 flex items-center space-x-2">
               <Zap className="w-5 h-5 text-primary-400" />
-              <span>🔗 OpenRouter AI Integration</span>
+              <span>🔗 Google Gemini AI Integration</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-slate-300">
               <div>
@@ -484,7 +484,7 @@ The system would parse the actual PDF/DOC file and extract the text content for 
                 <ul className="space-y-2 text-slate-400">
                   <li className="flex items-start space-x-2">
                     <span className="text-primary-400 mt-1">•</span>
-                    <span>Analyzes your resume against job requirements</span>
+                    <span>Google's advanced AI analyzes your resume</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <span className="text-primary-400 mt-1">•</span>
@@ -512,7 +512,7 @@ The system would parse the actual PDF/DOC file and extract the text content for 
                   </li>
                   <li className="flex items-start space-x-2">
                     <span className="text-secondary-400 mt-1">•</span>
-                    <span>DeepSeek AI model for accurate analysis</span>
+                    <span>Google Gemini 2.0 Flash model</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <span className="text-secondary-400 mt-1">•</span>
@@ -549,20 +549,20 @@ The system would parse the actual PDF/DOC file and extract the text content for 
         <div className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
-              OpenRouter API Key
+              Google Gemini API Key
             </label>
             <input
               type="password"
               value={settingsForm.apiKey}
               onChange={(e) => setSettingsForm(prev => ({ ...prev, apiKey: e.target.value }))}
-              placeholder={apiKey ? "••••••••" + apiKey.slice(-4) : "sk-or-v1-..."}
+              placeholder={apiKey ? "••••••••" + apiKey.slice(-4) : "AIzaSy..."}
               className="w-full px-4 py-3 bg-dark-800/30 border-slate-600/50 backdrop-blur-xl border rounded-lg focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 text-slate-100 placeholder-slate-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             />
             <p className="text-xs text-slate-400 mt-1">
-              Enter your OpenRouter API key (required)
+              Enter your Google Gemini API key (required)
             </p>
             <p className="text-xs text-primary-400 mt-1">
-              Default key: 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
+              Default key: AIzaSyAkhEzZwuPRRP37vppknTgx3m1qNTzCSkE
             </p>
           </div>
           
@@ -575,17 +575,17 @@ The system would parse the actual PDF/DOC file and extract the text content for 
               onChange={(e) => setSettingsForm(prev => ({ ...prev, modelId: e.target.value }))}
               className="w-full px-4 py-3 bg-dark-800/30 border-slate-600/50 backdrop-blur-xl border rounded-lg focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
-              <option value="deepseek/deepseek-r1-0528:free" className="bg-dark-800 text-slate-100">
-                DeepSeek R1 (Default)
+              <option value="gemini-2.0-flash" className="bg-dark-800 text-slate-100">
+                Gemini 2.0 Flash (Default)
               </option>
-              <option value="anthropic/claude-3-haiku:beta" className="bg-dark-800 text-slate-100">
-                Claude 3 Haiku
+              <option value="gemini-1.5-flash" className="bg-dark-800 text-slate-100">
+                Gemini 1.5 Flash
               </option>
-              <option value="google/gemma-7b-it:free" className="bg-dark-800 text-slate-100">
-                Google Gemma 7B
+              <option value="gemini-1.5-pro" className="bg-dark-800 text-slate-100">
+                Gemini 1.5 Pro
               </option>
-              <option value="meta-llama/llama-3-8b-instruct:free" className="bg-dark-800 text-slate-100">
-                Llama 3 8B
+              <option value="gemini-2.0-pro" className="bg-dark-800 text-slate-100">
+                Gemini 2.0 Pro
               </option>
             </select>
             <p className="text-xs text-slate-400 mt-1">
@@ -594,12 +594,12 @@ The system would parse the actual PDF/DOC file and extract the text content for 
           </div>
           
           <div className="bg-gradient-to-r from-primary-900/20 to-secondary-900/20 border border-primary-600/30 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-primary-300 mb-2">About OpenRouter</h3>
+            <h3 className="text-sm font-medium text-primary-300 mb-2">About Google Gemini</h3>
             <p className="text-xs text-slate-400">
-              OpenRouter provides access to various AI models through a unified API. 
-              You can get your own API key at <a href="https://openrouter.ai" target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:text-primary-300">openrouter.ai</a>.
+              Google Gemini is Google's most capable AI model for analyzing text and generating content.
+              You can get your own API key at <a href="https://ai.google.dev/" target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:text-primary-300">Google AI Studio</a>.
               <br/><br/>
-              <strong>Important:</strong> Make sure to include the full API key starting with "sk-or-v1-".
+              <strong>Important:</strong> Make sure to include the full API key starting with "AIzaSy".
             </p>
           </div>
         </div>
