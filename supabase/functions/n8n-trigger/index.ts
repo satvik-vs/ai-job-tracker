@@ -97,10 +97,10 @@ serve(async (req) => {
       }
     }
 
-    console.log('📤 Sending to N8N Railway:', JSON.stringify(n8nPayload, null, 2))
+    console.log('🚀 Sending to N8N Railway test webhook:', JSON.stringify(n8nPayload, null, 2))
 
     // Send to N8N Railway webhook with proper headers
-    const n8nResponse = await fetch('https://primary-production-130e0.up.railway.app/webhook/job-application-received', {
+    const n8nResponse = await fetch('https://primary-production-130e0.up.railway.app/webhook-test/job-application-received', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -115,14 +115,17 @@ serve(async (req) => {
     console.log('📊 N8N Response Status:', n8nResponse.status)
     console.log('📊 N8N Response Headers:', Object.fromEntries(n8nResponse.headers.entries()))
 
+    // Log the response body for debugging
+    const responseBody = await n8nResponse.text();
+    console.log('📊 N8N Response Body:', responseBody);
+
     if (!n8nResponse.ok) {
-      const errorText = await n8nResponse.text().catch(() => 'Unknown error')
-      console.error('❌ N8N Error Response:', errorText)
+      console.error('❌ N8N Error Response:', responseBody)
       
       return new Response(
         JSON.stringify({ 
           error: `N8N webhook failed: ${n8nResponse.status} ${n8nResponse.statusText}`,
-          details: errorText,
+          details: responseBody,
           success: false 
         }),
         {
@@ -132,15 +135,14 @@ serve(async (req) => {
       )
     }
 
-    const responseData = await n8nResponse.text().catch(() => 'OK')
-    console.log('✅ N8N webhook triggered successfully:', responseData)
+    console.log('✅ N8N webhook triggered successfully:', responseBody)
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: 'N8N workflow triggered successfully',
         request_id,
-        n8n_response: responseData,
+        n8n_response: responseBody,
         payload_sent: n8nPayload
       }),
       {

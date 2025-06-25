@@ -194,7 +194,6 @@ export function useN8nGenerations() {
 
       // Prepare payload for N8N
       const payload = {
-        generation_id: generationId,
         type,
         user_id: user.id,
         user_email: user.email || '',
@@ -213,28 +212,22 @@ export function useN8nGenerations() {
         }
       };
 
-      console.log('🚀 Sending to N8N Railway:', payload);
+      console.log('🚀 Sending to N8N Railway test webhook:', payload);
 
-      // Send directly to N8N Railway webhook
+      // Send directly to N8N Railway test webhook
       const response = await axios.post(
-        'https://primary-production-130e0.up.railway.app/webhook/job-application-received',
+        'https://primary-production-130e0.up.railway.app/webhook-test/job-application-received',
         payload,
         {
           headers: {
             'Content-Type': 'application/json',
             'User-Agent': 'JobTracker-AI/1.0',
-            'Accept': 'application/json',
-            'X-Request-Source': 'jobtracker-ai-direct',
-            'X-Railway-Domain': 'primary-production-130e0.up.railway.app'
+            'Accept': 'application/json'
           }
         }
       );
 
-      if (response.status !== 200) {
-        throw new Error(`N8N webhook failed: ${response.status} ${response.statusText}`);
-      }
-
-      console.log('✅ N8N webhook triggered successfully');
+      console.log('✅ N8N webhook response:', response.data);
       
       // Start progress timer
       startProgressTimer(300); // 5 minutes
