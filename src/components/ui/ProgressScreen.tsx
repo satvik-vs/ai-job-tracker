@@ -20,7 +20,7 @@ export function ProgressScreen({ type, progress, timeRemaining, onCancel }: Prog
   const getProgressMessage = () => {
     if (progress < 20) return 'Analyzing job requirements...';
     if (progress < 40) return 'Processing with AI models...';
-    if (progress < 60) return 'Generating suggestions...';
+    if (progress < 60) return 'Optimizing content structure...';
     if (progress < 80) return 'Applying ATS optimization...';
     if (progress < 95) return 'Finalizing suggestions...';
     return 'Almost ready!';
@@ -138,15 +138,15 @@ export function ProgressScreen({ type, progress, timeRemaining, onCancel }: Prog
               <div className="space-y-2 text-xs text-slate-400">
                 <div className={`flex items-center space-x-2 ${progress >= 20 ? 'text-success-400' : ''}`}>
                   <div className={`w-2 h-2 rounded-full ${progress >= 20 ? 'bg-success-400' : 'bg-slate-600'}`} />
-                  <span>Analyzing job requirements</span>
+                  <span>Job requirements analysis</span>
                 </div>
                 <div className={`flex items-center space-x-2 ${progress >= 40 ? 'text-success-400' : ''}`}>
                   <div className={`w-2 h-2 rounded-full ${progress >= 40 ? 'bg-success-400' : 'bg-slate-600'}`} />
-                  <span>OpenRouter AI processing</span>
+                  <span>n8n workflow processing</span>
                 </div>
                 <div className={`flex items-center space-x-2 ${progress >= 60 ? 'text-success-400' : ''}`}>
                   <div className={`w-2 h-2 rounded-full ${progress >= 60 ? 'bg-success-400' : 'bg-slate-600'}`} />
-                  <span>Generating suggestions</span>
+                  <span>Content optimization</span>
                 </div>
                 <div className={`flex items-center space-x-2 ${progress >= 80 ? 'text-success-400' : ''}`}>
                   <div className={`w-2 h-2 rounded-full ${progress >= 80 ? 'bg-success-400' : 'bg-slate-600'}`} />

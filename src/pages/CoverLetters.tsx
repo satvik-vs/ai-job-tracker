@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -7,6 +7,7 @@ import { ProgressScreen } from '../components/ui/ProgressScreen';
 import { Mail, Sparkles, Copy, Download, Send, Zap, Target, Brain, MessageSquare } from 'lucide-react';
 import { useJobApplications } from '../hooks/useJobApplications';
 import { useLinkedInJobs } from '../hooks/useLinkedInJobs';
+import { useN8nGenerations } from '../hooks/useN8nGenerations';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 
@@ -30,13 +31,21 @@ export function CoverLetters() {
     whyCompany: ''
   });
   
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [timeRemaining, setTimeRemaining] = useState(0);
-  const [generatedContent, setGeneratedContent] = useState('');
-  
   const { applications } = useJobApplications();
   const { jobs: linkedInJobs, loading: jobsLoading } = useLinkedInJobs();
+  const { 
+    coverLetterGenerations,
+    loading, 
+    progress, 
+    timeRemaining, 
+    triggerN8nWorkflow,
+    getCoverLetterGenerationByJobId,
+    resetState,
+    fetchCoverLetterGenerations
+  } = useN8nGenerations();
+
+  const [generatedContent, setGeneratedContent] = useState('');
+  const [generationFound, setGenerationFound] = useState(false);
 
   // Combine job applications and LinkedIn jobs for the dropdown
   const allJobOptions = [
@@ -56,6 +65,38 @@ export function CoverLetters() {
       data: job
     }))
   ];
+
+  // Check for existing generation when job selection changes
+  useEffect(() => {
+    if (formData.selectedJobId) {
+      checkForExistingGeneration(formData.selectedJobId);
+    } else {
+      setGeneratedContent('');
+      setGenerationFound(false);
+    }
+  }, [formData.selectedJobId, coverLetterGenerations]);
+
+  const checkForExistingGeneration = (selectedJobId: string) => {
+    let jobId = null;
+    
+    if (selectedJobId.startsWith('app_')) {
+      jobId = selectedJobId.replace('app_', '');
+    } else if (selectedJobId.startsWith('linkedin_')) {
+      jobId = selectedJobId.replace('linkedin_', '');
+    }
+    
+    if (jobId) {
+      const existingGeneration = getCoverLetterGenerationByJobId(jobId);
+      if (existingGeneration) {
+        setGeneratedContent(existingGeneration.content);
+        setGenerationFound(true);
+        return true;
+      }
+    }
+    
+    setGenerationFound(false);
+    return false;
+  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -100,17 +141,61 @@ export function CoverLetters() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success('Content exported successfully!');
+    toast.success('Cover letter exported successfully!');
   };
 
   const handleCancel = () => {
-    setLoading(false);
-    setProgress(0);
-    setTimeRemaining(0);
+    resetState();
   };
 
   const handleGenerate = async () => {
-    toast.error("Cover letter generation is not implemented in this version. Please use the Resume Analyzer instead.");
+    if (!formData.companyName.trim()) {
+      toast.error('Please enter a company name');
+      return;
+    }
+
+    if (!formData.jobTitle.trim()) {
+      toast.error('Please enter a job title');
+      return;
+    }
+
+    if (!formData.jobDescription.trim()) {
+      toast.error('Please enter a job description');
+      return;
+    }
+
+    try {
+      // Check if we already have a generation for this job
+      if (formData.selectedJobId && checkForExistingGeneration(formData.selectedJobId)) {
+        toast.info('Using existing generation for this job');
+        return;
+      }
+
+      // Trigger n8n workflow
+      await triggerN8nWorkflow('cover-letter', {
+        companyName: formData.companyName,
+        jobTitle: formData.jobTitle,
+        jobDescription: formData.jobDescription,
+        hiringManager: formData.hiringManager,
+        tone: formData.tone,
+        personalExperience: formData.personalExperience,
+        whyCompany: formData.whyCompany,
+        selectedJobId: formData.selectedJobId
+      });
+      
+      toast.success('Cover letter generation request sent to n8n');
+    } catch (error) {
+      console.error('Error generating cover letter:', error);
+      toast.error('Failed to send cover letter generation request');
+    }
+  };
+
+  const handleRefresh = () => {
+    fetchCoverLetterGenerations();
+    if (formData.selectedJobId) {
+      checkForExistingGeneration(formData.selectedJobId);
+    }
+    toast.success('Refreshed generations from database');
   };
 
   return (
@@ -137,7 +222,7 @@ export function CoverLetters() {
             </h1>
             <p className="text-slate-400 mt-2 flex items-center space-x-2 text-sm lg:text-base">
               <Target className="w-4 h-4" />
-              <span>Create personalized, compelling cover letters powered by Google Gemini AI</span>
+              <span>Create personalized, compelling cover letters powered by n8n workflow</span>
             </p>
           </div>
 
@@ -147,8 +232,8 @@ export function CoverLetters() {
               <div className="flex items-center space-x-2">
                 <Brain className="w-4 h-4 lg:w-5 lg:h-5 text-primary-400" />
                 <div>
-                  <p className="text-xs lg:text-sm text-primary-300 font-medium">Google Gemini</p>
-                  <p className="text-xs text-slate-400">AI Powered</p>
+                  <p className="text-xs lg:text-sm text-primary-300 font-medium">n8n Powered</p>
+                  <p className="text-xs text-slate-400">Railway Workflow</p>
                 </div>
               </div>
             </div>
@@ -174,7 +259,7 @@ export function CoverLetters() {
               <div className="flex items-center space-x-2">
                 <Sparkles className="w-4 h-4 lg:w-5 lg:h-5 text-accent-400" />
                 <div>
-                  <p className="text-xs lg:text-sm text-accent-300 font-medium">30 Sec</p>
+                  <p className="text-xs lg:text-sm text-accent-300 font-medium">5 Min</p>
                   <p className="text-xs text-slate-400">Processing</p>
                 </div>
               </div>
@@ -190,13 +275,23 @@ export function CoverLetters() {
             transition={{ duration: 0.5 }}
           >
             <Card className="bg-gradient-to-br from-dark-800/80 to-dark-900/80 border border-slate-700/50 h-full">
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <Mail className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
+              <div className="flex items-center justify-between space-x-3 mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <Mail className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-slate-100">
+                    Cover Letter Details
+                  </h2>
                 </div>
-                <h2 className="text-lg font-semibold text-slate-100">
-                  Cover Letter Details
-                </h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefresh}
+                  leftIcon={<Sparkles className="w-4 h-4" />}
+                >
+                  Refresh
+                </Button>
               </div>
 
               <div className="space-y-4 lg:space-y-6 mobile-form">
@@ -218,6 +313,11 @@ export function CoverLetters() {
                   </select>
                   {jobsLoading && (
                     <p className="text-xs text-slate-400 mt-1">Loading LinkedIn jobs...</p>
+                  )}
+                  {generationFound && (
+                    <p className="text-xs text-success-400 mt-1">
+                      Existing generation found for this job
+                    </p>
                   )}
                 </div>
 
@@ -266,7 +366,7 @@ export function CoverLetters() {
 
                 <Textarea
                   label="Job Description *"
-                  placeholder="Paste the job description here for AI analysis..."
+                  placeholder="Paste the job description here for n8n AI analysis..."
                   rows={window.innerWidth < 640 ? 4 : 6}
                   value={formData.jobDescription}
                   onChange={(e) => handleInputChange('jobDescription', e.target.value)}
@@ -294,11 +394,11 @@ export function CoverLetters() {
                 <Button
                   onClick={handleGenerate}
                   disabled={loading}
-                  className="w-full opacity-50 cursor-not-allowed"
+                  className="w-full"
                   leftIcon={<Sparkles className="w-5 h-5" />}
-                  variant="outline"
+                  glow
                 >
-                  Generate with Google Gemini
+                  Generate with n8n
                 </Button>
               </div>
             </Card>
@@ -317,7 +417,7 @@ export function CoverLetters() {
                     <Sparkles className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
                   </div>
                   <h2 className="text-lg font-semibold text-slate-100">
-                    Generated Cover Letter
+                    n8n Generated Cover Letter
                   </h2>
                 </div>
                 
@@ -370,9 +470,9 @@ export function CoverLetters() {
                       <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-slate-700 to-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Mail className="w-8 h-8 lg:w-10 lg:h-10 text-slate-400" />
                       </div>
-                      <h3 className="text-lg font-medium text-slate-300 mb-2">Coming Soon</h3>
+                      <h3 className="text-lg font-medium text-slate-300 mb-2">Ready to Generate</h3>
                       <p className="text-slate-400 max-w-sm text-sm">
-                        Cover letter generation is coming soon. Please use the Resume Analyzer in the meantime.
+                        Fill in the details and click "Generate with n8n" to create your personalized cover letter
                       </p>
                     </div>
                   </div>
@@ -382,7 +482,7 @@ export function CoverLetters() {
           </motion.div>
         </div>
 
-        {/* Google Gemini Integration Info */}
+        {/* n8n Integration Info */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -391,13 +491,13 @@ export function CoverLetters() {
           <Card className="bg-gradient-to-r from-primary-900/20 to-secondary-900/20 border border-primary-600/30">
             <h3 className="text-lg font-semibold text-slate-100 mb-4 flex items-center space-x-2">
               <Zap className="w-5 h-5 text-primary-400" />
-              <span>🔗 Google Gemini AI Integration</span>
+              <span>🔗 n8n Railway Workflow Integration</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-slate-300">
               <div>
                 <h4 className="font-medium text-slate-200 mb-2">How it works:</h4>
                 <ul className="space-y-1 text-slate-400">
-                  <li>• Sends data to Google Gemini API</li>
+                  <li>• Sends data to n8n webhook</li>
                   <li>• AI processes job requirements</li>
                   <li>• Generates personalized content</li>
                   <li>• Returns optimized cover letter</li>
@@ -415,7 +515,7 @@ export function CoverLetters() {
               <div>
                 <h4 className="font-medium text-slate-200 mb-2">Processing:</h4>
                 <ul className="space-y-1 text-slate-400">
-                  <li>• 30-second generation</li>
+                  <li>• 5-minute generation</li>
                   <li>• Real-time progress tracking</li>
                   <li>• Instant copy & export</li>
                   <li>• Ready-to-send format</li>

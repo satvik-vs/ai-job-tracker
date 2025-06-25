@@ -9,6 +9,7 @@ interface N8nResumeGeneration {
   job_type: 'application' | 'linkedin';
   company_name: string;
   job_title: string;
+  job_description?: string;
   content: string;
   ats_score: number;
   keywords: string[];
@@ -24,8 +25,10 @@ interface N8nCoverLetterGeneration {
   job_type: 'application' | 'linkedin';
   company_name: string;
   job_title: string;
+  job_description?: string;
   content: string;
   tone: string;
+  keywords: string[];
   personalization_score: number;
   word_count: number;
   created_at: string;
@@ -141,8 +144,57 @@ export function useN8nGenerations() {
         }
       }
 
+      // Create a placeholder entry in the appropriate table
+      let generationId;
+      
+      if (type === 'resume') {
+        const { data, error } = await supabase
+          .from('n8n_generations_resume')
+          .insert({
+            job_id: jobId,
+            job_type: jobType as 'application' | 'linkedin',
+            company_name: formData.companyName,
+            job_title: formData.jobTitle,
+            job_description: formData.jobDescription,
+            content: 'Generating resume suggestions...',
+            ats_score: 0,
+            keywords: [],
+            suggestions_count: 0,
+            request_id: requestId,
+            user_id: user.id
+          })
+          .select()
+          .single();
+          
+        if (error) throw error;
+        generationId = data.id;
+      } else {
+        const { data, error } = await supabase
+          .from('n8n_generations_cover_letter')
+          .insert({
+            job_id: jobId,
+            job_type: jobType as 'application' | 'linkedin',
+            company_name: formData.companyName,
+            job_title: formData.jobTitle,
+            job_description: formData.jobDescription,
+            content: 'Generating cover letter...',
+            tone: formData.tone || 'professional',
+            keywords: [],
+            personalization_score: 0,
+            word_count: 0,
+            request_id: requestId,
+            user_id: user.id
+          })
+          .select()
+          .single();
+          
+        if (error) throw error;
+        generationId = data.id;
+      }
+
       // Prepare payload for N8N
       const payload = {
+        generation_id: generationId,
         type,
         user_id: user.id,
         user_email: user.email || '',
@@ -185,84 +237,21 @@ export function useN8nGenerations() {
       console.log('✅ N8N webhook triggered successfully');
       
       // Start progress timer
-      const timer = startProgressTimer(300); // 5 minutes
+      startProgressTimer(300); // 5 minutes
       
-      // Create a placeholder entry in the appropriate table
-      if (type === 'resume') {
-        await supabase.from('n8n_generations_resume').insert({
-          job_id: jobId,
-          job_type: jobType,
-          company_name: formData.companyName,
-          job_title: formData.jobTitle,
-          content: 'Generating resume suggestions...',
-          ats_score: 0,
-          keywords: [],
-          suggestions_count: 0,
-          request_id: requestId,
-          user_id: user.id
-        });
-      } else {
-        await supabase.from('n8n_generations_cover_letter').insert({
-          job_id: jobId,
-          job_type: jobType,
-          company_name: formData.companyName,
-          job_title: formData.jobTitle,
-          content: 'Generating cover letter...',
-          tone: formData.tone || 'professional',
-          personalization_score: 0,
-          word_count: 0,
-          request_id: requestId,
-          user_id: user.id
-        });
-      }
-      
-      // Poll for response
-      const maxAttempts = 150; // 5 minutes max wait (150 * 2 seconds)
-      let attempts = 0;
-      
-      const pollForResponse = async (): Promise<void> => {
-        if (attempts >= maxAttempts) {
-          clearInterval(timer);
-          setLoading(false);
-          setProgress(100);
-          throw new Error('Request timed out. Please try again.');
-        }
-        
-        attempts++;
-        console.log(`🔍 Polling attempt ${attempts}/${maxAttempts} for request ${requestId}`);
-        
-        // Check if we received a response
-        let response;
+      // Refresh data after a delay to show the placeholder
+      setTimeout(() => {
         if (type === 'resume') {
-          response = await checkForResumeResponse(requestId);
+          fetchResumeGenerations();
         } else {
-          response = await checkForCoverLetterResponse(requestId);
+          fetchCoverLetterGenerations();
         }
-        
-        if (response) {
-          clearInterval(timer);
-          setProgress(100);
-          setTimeRemaining(0);
-          
-          console.log('🎉 Response received:', response);
-          
-          if (type === 'resume') {
-            await fetchResumeGenerations();
-          } else {
-            await fetchCoverLetterGenerations();
-          }
-          
-          setLoading(false);
-          return;
-        }
-        
-        // Continue polling
-        setTimeout(pollForResponse, 2000); // Poll every 2 seconds
+      }, 2000);
+      
+      return {
+        requestId,
+        generationId
       };
-      
-      pollForResponse();
-      
-      return requestId;
     } catch (error: any) {
       console.error('❌ Error triggering N8N workflow:', error);
       setLoading(false);
@@ -270,54 +259,6 @@ export function useN8nGenerations() {
       setTimeRemaining(0);
       toast.error(error.message || 'Failed to trigger N8N workflow');
       throw error;
-    }
-  };
-
-  const checkForResumeResponse = async (requestId: string): Promise<N8nResumeGeneration | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('n8n_generations_resume')
-        .select('*')
-        .eq('request_id', requestId)
-        .single();
-
-      if (error) {
-        console.error('Error checking for resume response:', error);
-        return null;
-      }
-
-      if (data && data.content !== 'Generating resume suggestions...') {
-        return data;
-      }
-
-      return null;
-    } catch (error) {
-      console.error('Error checking for resume response:', error);
-      return null;
-    }
-  };
-
-  const checkForCoverLetterResponse = async (requestId: string): Promise<N8nCoverLetterGeneration | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('n8n_generations_cover_letter')
-        .select('*')
-        .eq('request_id', requestId)
-        .single();
-
-      if (error) {
-        console.error('Error checking for cover letter response:', error);
-        return null;
-      }
-
-      if (data && data.content !== 'Generating cover letter...') {
-        return data;
-      }
-
-      return null;
-    } catch (error) {
-      console.error('Error checking for cover letter response:', error);
-      return null;
     }
   };
 
@@ -337,6 +278,12 @@ export function useN8nGenerations() {
     return coverLetterGenerations.find(gen => gen.job_id === jobId);
   };
 
+  const resetState = () => {
+    setLoading(false);
+    setProgress(0);
+    setTimeRemaining(0);
+  };
+
   return {
     resumeGenerations,
     coverLetterGenerations,
@@ -349,6 +296,7 @@ export function useN8nGenerations() {
     getResumeGenerationById,
     getCoverLetterGenerationById,
     getResumeGenerationByJobId,
-    getCoverLetterGenerationByJobId
+    getCoverLetterGenerationByJobId,
+    resetState
   };
 }

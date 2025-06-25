@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
 import { Input } from '../components/ui/Input'; 
 import { ProgressScreen } from '../components/ui/ProgressScreen';
-import { FileText, Sparkles, Copy, Download, Zap, Target, Brain, TrendingUp, Upload, Settings } from 'lucide-react';
+import { FileText, Sparkles, Copy, Download, Zap, Target, Brain, TrendingUp, Upload, Settings, RefreshCw } from 'lucide-react';
 import { useJobApplications } from '../hooks/useJobApplications';
 import { useLinkedInJobs } from '../hooks/useLinkedInJobs';
 import { useDocuments } from '../hooks/useDocuments';
-import { useGeminiAI } from '../hooks/useGeminiAI';
+import { useN8nGenerations } from '../hooks/useN8nGenerations';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Modal } from '../components/ui/Modal';
 
 export function ResumeGenerator() {
   const [formData, setFormData] = useState({
@@ -21,27 +20,23 @@ export function ResumeGenerator() {
     jobTitle: '',
     jobDescription: ''
   });
-  const [showSettings, setShowSettings] = useState(false);
-  const [settingsForm, setSettingsForm] = useState({
-    apiKey: '',
-    modelId: 'gemini-2.0-flash'
-  });
   
   const { applications } = useJobApplications();
   const { jobs: linkedInJobs, loading: jobsLoading } = useLinkedInJobs();
   const { documents } = useDocuments();
   const { 
+    resumeGenerations,
     loading, 
     progress, 
     timeRemaining, 
-    generatedContent, 
-    generateContent, 
+    triggerN8nWorkflow,
+    getResumeGenerationByJobId,
     resetState,
-    setGeneratedContent,
-    apiKey,
-    modelId,
-    updateSettings
-  } = useGeminiAI();
+    fetchResumeGenerations
+  } = useN8nGenerations();
+
+  const [generatedContent, setGeneratedContent] = useState('');
+  const [generationFound, setGenerationFound] = useState(false);
 
   // Filter documents to only show resumes
   const resumeDocuments = documents.filter(doc => doc.file_type === 'resume');
@@ -74,6 +69,38 @@ export function ResumeGenerator() {
     }))
   ];
 
+  // Check for existing generation when job selection changes
+  useEffect(() => {
+    if (formData.selectedJobId) {
+      checkForExistingGeneration(formData.selectedJobId);
+    } else {
+      setGeneratedContent('');
+      setGenerationFound(false);
+    }
+  }, [formData.selectedJobId, resumeGenerations]);
+
+  const checkForExistingGeneration = (selectedJobId: string) => {
+    let jobId = null;
+    
+    if (selectedJobId.startsWith('app_')) {
+      jobId = selectedJobId.replace('app_', '');
+    } else if (selectedJobId.startsWith('linkedin_')) {
+      jobId = selectedJobId.replace('linkedin_', '');
+    }
+    
+    if (jobId) {
+      const existingGeneration = getResumeGenerationByJobId(jobId);
+      if (existingGeneration) {
+        setGeneratedContent(existingGeneration.content);
+        setGenerationFound(true);
+        return true;
+      }
+    }
+    
+    setGenerationFound(false);
+    return false;
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
@@ -102,33 +129,6 @@ export function ResumeGenerator() {
     }
   };
 
-  const extractResumeContent = async (resumeId: string): Promise<string> => {
-    const resume = resumeDocuments.find(doc => doc.id === resumeId);
-    if (!resume) {
-      throw new Error('Resume not found');
-    }
-
-    // If resume has content stored, use that
-    if (resume.resume_content) {
-      return resume.resume_content;
-    }
-
-    // Otherwise return a placeholder
-    return `Resume Content for ${resume.file_name}
-
-This is a placeholder for the actual resume content that would be extracted from the uploaded file.
-
-In a production environment, this would contain:
-- Personal information
-- Professional summary
-- Work experience
-- Education
-- Skills
-- Certifications
-
-The system would parse the actual PDF/DOC file and extract the text content for analysis.`;
-  };
-
   const handleGenerate = async () => {
     if (!formData.companyName.trim()) {
       toast.error('Please enter a company name');
@@ -146,36 +146,24 @@ The system would parse the actual PDF/DOC file and extract the text content for 
     }
 
     try {
-      let resumeContent = '';
+      // Check if we already have a generation for this job
+      if (formData.selectedJobId && checkForExistingGeneration(formData.selectedJobId)) {
+        toast.info('Using existing generation for this job');
+        return;
+      }
+
+      // Trigger n8n workflow
+      await triggerN8nWorkflow('resume', {
+        companyName: formData.companyName,
+        jobTitle: formData.jobTitle,
+        jobDescription: formData.jobDescription,
+        selectedJobId: formData.selectedJobId
+      });
       
-      // Extract resume content if a resume is selected
-      if (formData.selectedResumeId) {
-        try {
-          resumeContent = await extractResumeContent(formData.selectedResumeId);
-        } catch (error) {
-          console.error('Failed to extract resume content:', error);
-          toast.error('Failed to read resume content. Proceeding with job analysis only.');
-        }
-      }
-
-      // Extract the actual job ID for selected_job_id
-      let selectedJobId = null;
-      if (formData.selectedJobId) {
-        if (formData.selectedJobId.startsWith('app_')) {
-          selectedJobId = formData.selectedJobId.replace('app_', '');
-        } else if (formData.selectedJobId.startsWith('linkedin_')) {
-          selectedJobId = formData.selectedJobId.replace('linkedin_', '');
-        }
-      }
-
-      await generateContent('resume', {
-        company_name: formData.companyName,
-        job_title: formData.jobTitle,
-        job_description: formData.jobDescription,
-        selected_job_id: selectedJobId
-      }, resumeContent);
+      toast.success('Resume analysis request sent to n8n');
     } catch (error) {
-      // Error handled in hook
+      console.error('Error generating resume suggestions:', error);
+      toast.error('Failed to send resume analysis request');
     }
   };
 
@@ -201,10 +189,12 @@ The system would parse the actual PDF/DOC file and extract the text content for 
     resetState();
   };
 
-  const handleSaveSettings = () => {
-    updateSettings(settingsForm.apiKey, settingsForm.modelId);
-    toast.success('AI settings updated');
-    setShowSettings(false);
+  const handleRefresh = () => {
+    fetchResumeGenerations();
+    if (formData.selectedJobId) {
+      checkForExistingGeneration(formData.selectedJobId);
+    }
+    toast.success('Refreshed generations from database');
   };
 
   return (
@@ -231,7 +221,7 @@ The system would parse the actual PDF/DOC file and extract the text content for 
             </h1>
             <p className="text-slate-400 mt-2 flex items-center space-x-2 text-sm lg:text-base">
               <Target className="w-4 h-4" />
-              <span>Analyze your resume against job requirements with Google Gemini AI</span>
+              <span>Analyze your resume against job requirements with n8n workflow</span>
             </p>
           </div>
 
@@ -241,8 +231,8 @@ The system would parse the actual PDF/DOC file and extract the text content for 
               <div className="flex items-center space-x-2">
                 <Brain className="w-4 h-4 lg:w-5 lg:h-5 text-primary-400" />
                 <div>
-                  <p className="text-xs lg:text-sm text-primary-300 font-medium">Google Gemini</p>
-                  <p className="text-xs text-slate-400">Powered by Google AI</p>
+                  <p className="text-xs lg:text-sm text-primary-300 font-medium">n8n Powered</p>
+                  <p className="text-xs text-slate-400">Railway Workflow</p>
                 </div>
               </div>
             </div>
@@ -268,7 +258,7 @@ The system would parse the actual PDF/DOC file and extract the text content for 
               <div className="flex items-center space-x-2">
                 <Sparkles className="w-4 h-4 lg:w-5 lg:h-5 text-accent-400" />
                 <div>
-                  <p className="text-xs lg:text-sm text-accent-300 font-medium">Fast Analysis</p>
+                  <p className="text-xs lg:text-sm text-accent-300 font-medium">5 Min</p>
                   <p className="text-xs text-slate-400">Processing</p>
                 </div>
               </div>
@@ -294,10 +284,10 @@ The system would parse the actual PDF/DOC file and extract the text content for 
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowSettings(true)}
-                  leftIcon={<Settings className="w-4 h-4" />}
+                  onClick={handleRefresh}
+                  leftIcon={<RefreshCw className="w-4 h-4" />}
                 >
-                  AI Settings
+                  Refresh
                 </Button>
               </div>
 
@@ -344,6 +334,11 @@ The system would parse the actual PDF/DOC file and extract the text content for 
                   {jobsLoading && (
                     <p className="text-xs text-slate-400 mt-1">Loading LinkedIn jobs...</p>
                   )}
+                  {generationFound && (
+                    <p className="text-xs text-success-400 mt-1">
+                      Existing generation found for this job
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -372,24 +367,19 @@ The system would parse the actual PDF/DOC file and extract the text content for 
                     value={formData.jobDescription}
                     onChange={(e) => handleInputChange('jobDescription', e.target.value)}
                     className="w-full px-4 py-3 bg-dark-800/30 border-slate-600/50 backdrop-blur-xl border rounded-lg focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 text-slate-100 placeholder-slate-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 resize-none font-mono text-sm"
-                    placeholder="Paste the complete job description here for AI analysis..."
+                    placeholder="Paste the complete job description here for n8n AI analysis..."
                   />
                 </div>
 
                 <Button
                   onClick={handleGenerate}
-                  disabled={loading || (!apiKey && !settingsForm.apiKey)}
+                  disabled={loading}
                   className="w-full"
                   leftIcon={<Sparkles className="w-5 h-5" />}
                   glow
                 >
-                  Analyze with Google Gemini
+                  Generate with n8n
                 </Button>
-                {!apiKey && !settingsForm.apiKey && (
-                  <p className="text-xs text-warning-400 mt-2 text-center">
-                    Please configure your Google Gemini API key in settings
-                  </p>
-                )}
               </div>
             </Card>
           </motion.div>
@@ -407,7 +397,7 @@ The system would parse the actual PDF/DOC file and extract the text content for 
                     <Sparkles className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
                   </div>
                   <h2 className="text-lg font-semibold text-slate-100">
-                    AI Analysis Results
+                    n8n Analysis Results
                   </h2>
                 </div>
                 
@@ -454,7 +444,7 @@ The system would parse the actual PDF/DOC file and extract the text content for 
                       </div>
                       <h3 className="text-lg font-medium text-slate-300 mb-2">Ready to Analyze</h3>
                       <p className="text-slate-400 max-w-sm text-sm">
-                        Select a resume (optional) and enter a job description, then click "Analyze with Google Gemini" to get personalized suggestions
+                        Select a job and click "Generate with n8n" to get personalized resume suggestions
                       </p>
                     </div>
                   </div>
@@ -464,7 +454,7 @@ The system would parse the actual PDF/DOC file and extract the text content for 
           </motion.div>
         </div>
 
-        {/* Google Gemini Integration Info */}
+        {/* n8n Integration Info */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -473,7 +463,7 @@ The system would parse the actual PDF/DOC file and extract the text content for 
           <Card className="bg-gradient-to-r from-primary-900/20 to-secondary-900/20 border border-primary-600/30">
             <h3 className="text-lg font-semibold text-slate-100 mb-4 flex items-center space-x-2">
               <Zap className="w-5 h-5 text-primary-400" />
-              <span>🔗 Google Gemini AI Integration</span>
+              <span>🔗 n8n Railway Workflow Integration</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-slate-300">
               <div>
@@ -484,19 +474,19 @@ The system would parse the actual PDF/DOC file and extract the text content for 
                 <ul className="space-y-2 text-slate-400">
                   <li className="flex items-start space-x-2">
                     <span className="text-primary-400 mt-1">•</span>
-                    <span>Google's advanced AI analyzes your resume</span>
+                    <span>Sends job data to n8n Railway webhook</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <span className="text-primary-400 mt-1">•</span>
-                    <span>Identifies key skills and experience gaps</span>
+                    <span>n8n processes with OpenRouter AI</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <span className="text-primary-400 mt-1">•</span>
-                    <span>Provides ATS optimization suggestions</span>
+                    <span>Results stored back in Supabase</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <span className="text-primary-400 mt-1">•</span>
-                    <span>Recommends tailored improvements</span>
+                    <span>UI automatically updates with results</span>
                   </li>
                 </ul>
               </div>
@@ -508,11 +498,11 @@ The system would parse the actual PDF/DOC file and extract the text content for 
                 <ul className="space-y-2 text-slate-400">
                   <li className="flex items-start space-x-2">
                     <span className="text-secondary-400 mt-1">•</span>
-                    <span>30-second processing time</span>
+                    <span>5-minute processing time</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <span className="text-secondary-400 mt-1">•</span>
-                    <span>Google Gemini 2.0 Flash model</span>
+                    <span>ATS-optimized suggestions</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <span className="text-secondary-400 mt-1">•</span>
@@ -528,82 +518,6 @@ The system would parse the actual PDF/DOC file and extract the text content for 
           </Card>
         </motion.div>
       </div>
-      
-      {/* AI Settings Modal */}
-      <Modal
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-        title="AI Settings"
-        size="md"
-        footer={
-          <div className="flex justify-end space-x-3">
-            <Button variant="outline" onClick={() => setShowSettings(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveSettings}>
-              Save Settings
-            </Button>
-          </div>
-        }
-      >
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Google Gemini API Key
-            </label>
-            <input
-              type="password"
-              value={settingsForm.apiKey}
-              onChange={(e) => setSettingsForm(prev => ({ ...prev, apiKey: e.target.value }))}
-              placeholder={apiKey ? "••••••••" + apiKey.slice(-4) : "AIzaSy..."}
-              className="w-full px-4 py-3 bg-dark-800/30 border-slate-600/50 backdrop-blur-xl border rounded-lg focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 text-slate-100 placeholder-slate-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-            />
-            <p className="text-xs text-slate-400 mt-1">
-              Enter your Google Gemini API key (required)
-            </p>
-            <p className="text-xs text-primary-400 mt-1">
-              Default key: AIzaSyAkhEzZwuPRRP37vppknTgx3m1qNTzCSkE
-            </p>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              AI Model
-            </label>
-            <select
-              value={settingsForm.modelId}
-              onChange={(e) => setSettingsForm(prev => ({ ...prev, modelId: e.target.value }))}
-              className="w-full px-4 py-3 bg-dark-800/30 border-slate-600/50 backdrop-blur-xl border rounded-lg focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-            >
-              <option value="gemini-2.0-flash" className="bg-dark-800 text-slate-100">
-                Gemini 2.0 Flash (Default)
-              </option>
-              <option value="gemini-1.5-flash" className="bg-dark-800 text-slate-100">
-                Gemini 1.5 Flash
-              </option>
-              <option value="gemini-1.5-pro" className="bg-dark-800 text-slate-100">
-                Gemini 1.5 Pro
-              </option>
-              <option value="gemini-2.0-pro" className="bg-dark-800 text-slate-100">
-                Gemini 2.0 Pro
-              </option>
-            </select>
-            <p className="text-xs text-slate-400 mt-1">
-              Select the AI model to use for analysis
-            </p>
-          </div>
-          
-          <div className="bg-gradient-to-r from-primary-900/20 to-secondary-900/20 border border-primary-600/30 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-primary-300 mb-2">About Google Gemini</h3>
-            <p className="text-xs text-slate-400">
-              Google Gemini is Google's most capable AI model for analyzing text and generating content.
-              You can get your own API key at <a href="https://ai.google.dev/" target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:text-primary-300">Google AI Studio</a>.
-              <br/><br/>
-              <strong>Important:</strong> Make sure to include the full API key starting with "AIzaSy".
-            </p>
-          </div>
-        </div>
-      </Modal>
     </>
   );
 }
