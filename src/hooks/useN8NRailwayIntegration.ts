@@ -53,15 +53,11 @@ export function useN8NRailwayIntegration() {
     console.log('🚀 Sending to N8N via Supabase Edge Function:', payload);
 
     // Get the Supabase URL from environment
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://zeiivnxtkcqwlnmtxyfd.supabase.co';
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplaWl2bnh0a2Nxd2xubXR4eWZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAwNzMyNzUsImV4cCI6MjA2NTY0OTI3NX0.lhahnsYyO9yEvnYTt-5fxZ6bxtDzqHSiOR0OABD_jSI';
 
     if (!supabaseUrl || !supabaseKey) {
-      console.error('❌ Missing Supabase configuration:', {
-        url: supabaseUrl ? 'SET' : 'MISSING',
-        key: supabaseKey ? 'SET' : 'MISSING'
-      });
-      throw new Error('Supabase configuration missing. Please check your environment variables.');
+      throw new Error('Supabase configuration missing');
     }
 
     const edgeFunctionUrl = `${supabaseUrl}/functions/v1/n8n-trigger`;

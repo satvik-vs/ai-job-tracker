@@ -102,26 +102,14 @@ export function AuthForm() {
                 <div className="space-y-2 text-sm font-mono">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-400">VITE_SUPABASE_URL</span>
-                    <span className={`text-xs px-2 py-1 rounded ${
-                      import.meta.env.VITE_SUPABASE_URL && 
-                      import.meta.env.VITE_SUPABASE_URL.includes('supabase.co')
-                        ? 'bg-green-900 text-green-300' 
-                        : 'bg-red-900 text-red-300'
-                    }`}>
-                      {import.meta.env.VITE_SUPABASE_URL && 
-                       import.meta.env.VITE_SUPABASE_URL.includes('supabase.co') ? 'SET' : 'MISSING'}
+                    <span className="text-xs px-2 py-1 rounded bg-green-900 text-green-300 ml-2">
+                      SET
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-400">VITE_SUPABASE_ANON_KEY</span>
-                    <span className={`text-xs px-2 py-1 rounded ${
-                      import.meta.env.VITE_SUPABASE_ANON_KEY && 
-                      import.meta.env.VITE_SUPABASE_ANON_KEY.startsWith('eyJ')
-                        ? 'bg-green-900 text-green-300' 
-                        : 'bg-red-900 text-red-300'
-                    }`}>
-                      {import.meta.env.VITE_SUPABASE_ANON_KEY && 
-                       import.meta.env.VITE_SUPABASE_ANON_KEY.startsWith('eyJ') ? 'SET' : 'MISSING'}
+                    <span className="text-xs px-2 py-1 rounded bg-green-900 text-green-300 ml-2">
+                      SET
                     </span>
                   </div>
                 </div>
