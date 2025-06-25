@@ -50,60 +50,32 @@ export function useN8NRailwayIntegration() {
       data
     };
 
-    console.log('🚀 Sending to N8N via Supabase Edge Function:', payload);
+    console.log('🚀 Sending directly to N8N Railway:', payload);
 
-    // Get the Supabase URL from environment
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://zeiivnxtkcqwlnmtxyfd.supabase.co';
-    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplaWl2bnh0a2Nxd2xubXR4eWZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAwNzMyNzUsImV4cCI6MjA2NTY0OTI3NX0.lhahnsYyO9yEvnYTt-5fxZ6bxtDzqHSiOR0OABD_jSI';
-
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Supabase configuration missing');
-    }
-
-    const edgeFunctionUrl = `${supabaseUrl}/functions/v1/n8n-trigger`;
-    console.log('📡 Edge function URL:', edgeFunctionUrl);
-
-    // Send to Supabase edge function which will trigger N8N
-    const response = await fetch(edgeFunctionUrl, {
+    // Send directly to N8N Railway webhook
+    const response = await fetch('https://primary-production-130e0.up.railway.app/webhook/job-application-received', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseKey}`,
-        'Accept': 'application/json'
+        'User-Agent': 'JobTracker-AI/1.0',
+        'Accept': 'application/json',
+        'X-Request-Source': 'jobtracker-ai-direct',
+        'X-Railway-Domain': 'primary-production-130e0.up.railway.app'
       },
       body: JSON.stringify(payload)
     });
 
-    console.log('📊 Edge function response status:', response.status);
-    console.log('📊 Edge function response headers:', Object.fromEntries(response.headers.entries()));
+    console.log('📊 N8N Railway response status:', response.status);
+    console.log('📊 N8N Railway response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      console.error('❌ Edge function error:', errorText);
-      
-      // Try to parse error as JSON for better error messages
-      let errorMessage = `Edge function failed: ${response.status} ${response.statusText}`;
-      try {
-        const errorJson = JSON.parse(errorText);
-        if (errorJson.error) {
-          errorMessage = errorJson.error;
-        }
-      } catch (e) {
-        // If not JSON, use the raw text
-        if (errorText) {
-          errorMessage += ` - ${errorText}`;
-        }
-      }
-      
-      throw new Error(errorMessage);
+      console.error('❌ N8N Railway error:', errorText);
+      throw new Error(`N8N Railway webhook failed: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
-    const result = await response.json();
-    console.log('✅ N8N trigger response:', result);
-
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to trigger N8N workflow');
-    }
+    const result = await response.text();
+    console.log('✅ N8N Railway response:', result);
 
     return requestId;
   };
@@ -143,7 +115,7 @@ export function useN8NRailwayIntegration() {
 
       console.log('🎯 Starting content generation:', { type, formData });
 
-      // Send request to N8N via Supabase edge function
+      // Send request directly to N8N Railway
       const requestId = await sendToN8N(type, formData);
       setCurrentRequestId(requestId);
       

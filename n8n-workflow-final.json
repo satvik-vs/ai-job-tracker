@@ -205,7 +205,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"deepseek-chat\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a professional cover letter writing assistant. Create compelling, personalized cover letters that match the job requirements and company culture. Use a {{$json.tone}} tone and make it engaging and professional.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Write a cover letter for the following job:\\n\\nJob Title: {{$json.job_title}}\\nCompany: {{$json.company_name}}\\nHiring Manager: {{$json.hiring_manager}}\\nTone: {{$json.tone}}\\n\\nJob Description:\\n{{$json.job_description}}\\n\\nPersonal Experience:\\n{{$json.personal_experience}}\\n\\nWhy This Company:\\n{{$json.why_company}}\\n\\nCreate a professional cover letter that:\\n1. Has a strong opening that grabs attention\\n2. Highlights relevant experience and skills\\n3. Shows knowledge of the company\\n4. Demonstrates enthusiasm for the role\\n5. Has a compelling call-to-action closing\\n6. Uses keywords from the job description\\n7. Maintains a {{$json.tone}} tone throughout\\n\\nFormat it as a complete, ready-to-send cover letter.\"\n    }\n  ],\n  \"temperature\": 0.8\n}\n",
+        "jsonBody": "={\n  \"model\": \"deepseek/deepseek-r1\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a professional cover letter writing assistant. Create compelling, personalized cover letters that match the job requirements and company culture. Use a {{$json.tone}} tone and make it engaging and professional.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Write a cover letter for the following job:\\n\\nJob Title: {{$json.job_title}}\\nCompany: {{$json.company_name}}\\nHiring Manager: {{$json.hiring_manager}}\\nTone: {{$json.tone}}\\n\\nJob Description:\\n{{$json.job_description}}\\n\\nPersonal Experience:\\n{{$json.personal_experience}}\\n\\nWhy This Company:\\n{{$json.why_company}}\\n\\nCreate a professional cover letter that:\\n1. Has a strong opening that grabs attention\\n2. Highlights relevant experience and skills\\n3. Shows knowledge of the company\\n4. Demonstrates enthusiasm for the role\\n5. Has a compelling call-to-action closing\\n6. Uses keywords from the job description\\n7. Maintains a {{$json.tone}} tone throughout\\n\\nFormat it as a complete, ready-to-send cover letter.\"\n    }\n  ],\n  \"temperature\": 0.8\n}\n",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -258,39 +258,34 @@
     },
     {
       "parameters": {
-        "modelId": {
-          "__rl": true,
-          "value": "deepseek/deepseek-r1-0528:free",
-          "mode": "id"
-        },
-        "messages": {
-          "values": [
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
             {
-              "content": "=You are a resume optimization assistant. \nRespond ONLY in this exact JSON format and **ensure it is a single flat object**:\n\n{\n  \"selected_job_id\": \"{{ $json.selected_job_id }}\",\n  \"request_id\": \"{{ $json.request_id }}\",\n  \"type\": \"resume\",\n  \"status\": \"success\",\n  \"content\": \"<<< FULL resume improvement suggestions as a formatted string >>>\",\n  \"processing_time\": 45,\n  \"metadata\": {\n    \"keywords_found\": [...],\n    \"ats_score\": 90,\n    \"suggestions_count\": 10\n  }\n}\n\nImportant:\n- The value of `content` must be a full string (not an object).\n- Use bullet points and headings inside the string.\n- Never return content as a nested object.\n",
-              "role": "system"
+              "name": "Authorization",
+              "value": "Bearer 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"
             },
             {
-              "content": "=I want resume suggestions for this job:\n\nJob Title: {{$json.job_title}}\nCompany: {{$json.company_name}}\nJob Description:\n{{$json.job_description}}\n\nInstructions:\n- Return the response in the JSON format provided above.\n- Place all optimization suggestions inside the `content` field as a nicely formatted **string**.\n- Use bullet points, subheadings, and clearly separate each section: keywords, summary, skills, experience, ATS tips, company insights, checklist.\n- Replace `request_id` with this: {{$json.request_id}}\n- Replace `selected_job_id` with this: {{ $json.selected_job_id }}\n"
+              "name": "Content-Type",
+              "value": "application/json"
             }
           ]
         },
-        "jsonOutput": true,
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"deepseek/deepseek-r1\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a resume optimization assistant. Respond ONLY with a comprehensive resume improvement guide as plain text. Do not use JSON format. Provide detailed, actionable suggestions for optimizing a resume for the given job description.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyze this job description and provide comprehensive resume optimization suggestions:\\n\\nJob Title: {{$json.job_title}}\\nCompany: {{$json.company_name}}\\nJob Description:\\n{{$json.job_description}}\\n\\nProvide detailed suggestions for:\\n1. Keywords to include\\n2. Skills to highlight\\n3. Experience formatting\\n4. ATS optimization\\n5. Industry-specific recommendations\\n6. Action verbs to use\\n7. Quantifiable achievements examples\\n8. Section organization\\n\\nFormat as a comprehensive guide with clear sections and bullet points.\"\n    }\n  ],\n  \"temperature\": 0.7\n}",
         "options": {}
       },
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 1.8,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         -280,
         4440
       ],
       "id": "df3b9a91-0b8f-40cd-aea4-9d77d5d3f321",
-      "name": "OpenAI",
-      "credentials": {
-        "openAiApi": {
-          "id": "rMaumt8Pq7BXrWFE",
-          "name": "OpenAi account 4"
-        }
-      }
+      "name": "Generate Resume Suggestions with DeepSeek AI"
     },
     {
       "parameters": {
@@ -319,7 +314,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ $json.message.content }}",
+        "jsonBody": "={\n  \"request_id\": \"{{ $('Extract Resume Data').item.json.request_id }}\",\n  \"type\": \"resume\",\n  \"status\": \"success\",\n  \"content\": \"{{ $json.choices[0].message.content }}\",\n  \"processing_time\": 45,\n  \"metadata\": {\n    \"keywords_found\": [\"javascript\", \"react\", \"node.js\"],\n    \"ats_score\": 90,\n    \"suggestions_count\": 10\n  },\n  \"job_application_id\": \"{{ $('Extract Resume Data').item.json.selected_job_id }}\"\n}",
         "options": {}
       },
       "name": "Send Resume to Frontend",
@@ -367,7 +362,7 @@
       "main": [
         [
           {
-            "node": "OpenAI",
+            "node": "Generate Resume Suggestions with DeepSeek AI",
             "type": "main",
             "index": 0
           }
@@ -396,7 +391,7 @@
         ]
       ]
     },
-    "OpenAI": {
+    "Generate Resume Suggestions with DeepSeek AI": {
       "main": [
         [
           {

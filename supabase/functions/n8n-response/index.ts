@@ -8,17 +8,22 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  console.log(`📥 N8N Response Handler called: ${req.method} ${req.url}`)
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Initialize Supabase client
+    // Initialize Supabase client with direct credentials
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      'https://zeiivnxtkcqwlnmtxyfd.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplaWl2bnh0a2Nxd2xubXR4eWZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDA3MzI3NSwiZXhwIjoyMDY1NjQ5Mjc1fQ.Ej6rP6VJGhQKjlJfqtNzBVQJQGQJQGQJQGQJQGQJQGQ'
     )
+
+    const requestBody = await req.json()
+    console.log('📨 Received N8N response:', requestBody)
 
     const { 
       request_id, 
@@ -29,9 +34,7 @@ serve(async (req) => {
       processing_time, 
       metadata,
       job_application_id 
-    } = await req.json()
-
-    console.log('📥 Received N8N response:', { request_id, type, status, job_application_id })
+    } = requestBody
 
     if (!request_id) {
       throw new Error('Missing request_id')
@@ -41,7 +44,7 @@ serve(async (req) => {
       // Determine the job_application_id to use
       let finalJobApplicationId = job_application_id
 
-      // If no job_application_id provided, use a placeholder or the request_id
+      // If no job_application_id provided, use a placeholder
       if (!finalJobApplicationId || finalJobApplicationId === 'null' || finalJobApplicationId === '') {
         finalJobApplicationId = `n8n-${request_id}`
       }

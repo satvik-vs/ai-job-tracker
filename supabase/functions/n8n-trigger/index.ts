@@ -7,7 +7,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  console.log(`🔥 Edge function called: ${req.method} ${req.url}`)
+  console.log(`🔥 N8N Trigger called: ${req.method} ${req.url}`)
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -77,7 +77,7 @@ serve(async (req) => {
       )
     }
 
-    // Prepare payload for N8N - EXACTLY matching your workflow structure
+    // Prepare payload for N8N Railway - EXACTLY matching your workflow structure
     const n8nPayload = {
       type,
       user_id,
@@ -104,7 +104,7 @@ serve(async (req) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'JobTracker-AI/1.0',
+        'User-Agent': 'Supabase-Edge-Function/1.0',
         'Accept': 'application/json',
         'X-Request-Source': 'supabase-edge-function',
         'X-Railway-Domain': 'primary-production-130e0.up.railway.app'

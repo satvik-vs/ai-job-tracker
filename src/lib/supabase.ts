@@ -1,14 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
 
-// Supabase configuration - using the actual credentials from your project
+// Direct Supabase configuration - no environment variables needed
 const supabaseUrl = 'https://zeiivnxtkcqwlnmtxyfd.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplaWl2bnh0a2Nxd2xubXR4eWZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAwNzMyNzUsImV4cCI6MjA2NTY0OTI3NX0.lhahnsYyO9yEvnYTt-5fxZ6bxtDzqHSiOR0OABD_jSI';
-
-// Validate credentials
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase configuration');
-}
 
 export const supabase = createClient<Database>(
   supabaseUrl,
@@ -54,7 +49,6 @@ export const getCurrentUserId = async () => {
 // Test connection
 export const testConnection = async () => {
   try {
-    // Simple health check
     const { data, error } = await supabase
       .from('profiles')
       .select('id')
@@ -65,6 +59,7 @@ export const testConnection = async () => {
       return false;
     }
     
+    console.log('✅ Supabase connection successful');
     return true;
   } catch (error: any) {
     console.error('❌ Supabase connection error:', error.message);
