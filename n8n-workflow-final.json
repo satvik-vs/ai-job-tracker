@@ -1,0 +1,415 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "job-application-received",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -900,
+        4660
+      ],
+      "id": "f41c4746-4529-44c3-a628-81cd2e00fc06",
+      "name": "Railway Webhook Trigger",
+      "webhookId": "c2118509-90c1-4203-af14-4cebdd4464d4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "4ca43058-7ce5-4f8f-87cc-36304e9b37d6",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "resume",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -680,
+        4660
+      ],
+      "id": "fcabb0e3-7797-400e-b778-9c7d124ac232",
+      "name": "Check Resume or Cover Letter"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e69f2b4f-6f26-4df3-8d81-a9015fba339f",
+              "name": "job_title",
+              "value": "={{ $json.data.job_title }}",
+              "type": "string"
+            },
+            {
+              "id": "4e173571-0d0a-4361-94c8-cc65f78a784a",
+              "name": "job_description",
+              "value": "={{ $json.data.job_description }}",
+              "type": "string"
+            },
+            {
+              "id": "578073a5-9173-42d1-b575-4974f68eef36",
+              "name": "company_name",
+              "value": "={{ $json.data.company_name }}",
+              "type": "string"
+            },
+            {
+              "id": "367a8bab-1c68-40d5-ab52-eebb93beb0b2",
+              "name": "user_email",
+              "value": "={{ $json.user_email }}",
+              "type": "string"
+            },
+            {
+              "id": "edd0611a-f8d8-41b1-9db0-b42e51a34783",
+              "name": "request_id",
+              "value": "={{ $json.request_id }}",
+              "type": "string"
+            },
+            {
+              "id": "new-user-id-field",
+              "name": "user_id",
+              "value": "={{ $json.user_id }}",
+              "type": "string"
+            },
+            {
+              "id": "8e9467a4-c402-4181-b07f-fbbf5fd69e50",
+              "name": "selected_job_id",
+              "value": "={{ $json.data.selected_job_id || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -420,
+        4580
+      ],
+      "id": "6fae723c-f2c3-4c0e-99e5-6d061fdedbf2",
+      "name": "Extract Resume Data"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cover-letter-job-title",
+              "name": "job_title",
+              "value": "={{ $json.data.job_title }}",
+              "type": "string"
+            },
+            {
+              "id": "cover-letter-job-description",
+              "name": "job_description",
+              "value": "={{ $json.data.job_description }}",
+              "type": "string"
+            },
+            {
+              "id": "cover-letter-company-name",
+              "name": "company_name",
+              "value": "={{ $json.data.company_name }}",
+              "type": "string"
+            },
+            {
+              "id": "cover-letter-user-email",
+              "name": "user_email",
+              "value": "={{ $json.user_email }}",
+              "type": "string"
+            },
+            {
+              "id": "cover-letter-request-id",
+              "name": "request_id",
+              "value": "={{ $json.request_id }}",
+              "type": "string"
+            },
+            {
+              "id": "cover-letter-hiring-manager",
+              "name": "hiring_manager",
+              "value": "={{ $json.data.hiring_manager || 'Hiring Manager' }}",
+              "type": "string"
+            },
+            {
+              "id": "cover-letter-tone",
+              "name": "tone",
+              "value": "={{ $json.data.tone || 'professional' }}",
+              "type": "string"
+            },
+            {
+              "id": "cover-letter-experience",
+              "name": "personal_experience",
+              "value": "={{ $json.data.personal_experience || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "cover-letter-why-company",
+              "name": "why_company",
+              "value": "={{ $json.data.why_company || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "cover-letter-selected-job-id",
+              "name": "selected_job_id",
+              "value": "={{ $json.data.selected_job_id || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -380,
+        4740
+      ],
+      "id": "a7bb5e6f-8585-49e4-9125-6d45b0f63880",
+      "name": "Extract Cover Letter Data"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"deepseek-chat\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a professional cover letter writing assistant. Create compelling, personalized cover letters that match the job requirements and company culture. Use a {{$json.tone}} tone and make it engaging and professional.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Write a cover letter for the following job:\\n\\nJob Title: {{$json.job_title}}\\nCompany: {{$json.company_name}}\\nHiring Manager: {{$json.hiring_manager}}\\nTone: {{$json.tone}}\\n\\nJob Description:\\n{{$json.job_description}}\\n\\nPersonal Experience:\\n{{$json.personal_experience}}\\n\\nWhy This Company:\\n{{$json.why_company}}\\n\\nCreate a professional cover letter that:\\n1. Has a strong opening that grabs attention\\n2. Highlights relevant experience and skills\\n3. Shows knowledge of the company\\n4. Demonstrates enthusiasm for the role\\n5. Has a compelling call-to-action closing\\n6. Uses keywords from the job description\\n7. Maintains a {{$json.tone}} tone throughout\\n\\nFormat it as a complete, ready-to-send cover letter.\"\n    }\n  ],\n  \"temperature\": 0.8\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -160,
+        4740
+      ],
+      "id": "c4994211-df05-4b07-91e8-745ed39f6a20",
+      "name": "Generate Cover Letter with DeepSeek AI"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zeiivnxtkcqwlnmtxyfd.supabase.co/functions/v1/n8n-response",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplaWl2bnh0a2Nxd2xubXR4eWZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAwNzMyNzUsImV4cCI6MjA2NTY0OTI3NX0.lhahnsYyO9yEvnYTt-5fxZ6bxtDzqHSiOR0OABD_jSI"
+            },
+            {
+              "name": "X-N8N-Source",
+              "value": "railway-workflow"
+            },
+            {
+              "name": "X-Railway-URL",
+              "value": "primary-production-130e0.up.railway.app"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"request_id\": \"{{ $('Extract Cover Letter Data').item.json.request_id }}\",\n  \"type\": \"cover-letter\",\n  \"status\": \"success\",\n  \"content\": \"{{ $json.choices[0].message.content }}\",\n  \"processing_time\": 45,\n  \"metadata\": {\n    \"tone_used\": \"{{ $('Extract Cover Letter Data').item.json.tone }}\",\n    \"word_count\": 350,\n    \"personalization_score\": 90\n  },\n  \"job_application_id\": \"{{ $('Extract Cover Letter Data').item.json.selected_job_id }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        60,
+        4740
+      ],
+      "id": "f4899f3e-6523-4cba-96f2-643f09990aa8",
+      "name": "Send Cover Letter to Frontend"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "deepseek/deepseek-r1-0528:free",
+          "mode": "id"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a resume optimization assistant. \nRespond ONLY in this exact JSON format and **ensure it is a single flat object**:\n\n{\n  \"selected_job_id\": \"{{ $json.selected_job_id }}\",\n  \"request_id\": \"{{ $json.request_id }}\",\n  \"type\": \"resume\",\n  \"status\": \"success\",\n  \"content\": \"<<< FULL resume improvement suggestions as a formatted string >>>\",\n  \"processing_time\": 45,\n  \"metadata\": {\n    \"keywords_found\": [...],\n    \"ats_score\": 90,\n    \"suggestions_count\": 10\n  }\n}\n\nImportant:\n- The value of `content` must be a full string (not an object).\n- Use bullet points and headings inside the string.\n- Never return content as a nested object.\n",
+              "role": "system"
+            },
+            {
+              "content": "=I want resume suggestions for this job:\n\nJob Title: {{$json.job_title}}\nCompany: {{$json.company_name}}\nJob Description:\n{{$json.job_description}}\n\nInstructions:\n- Return the response in the JSON format provided above.\n- Place all optimization suggestions inside the `content` field as a nicely formatted **string**.\n- Use bullet points, subheadings, and clearly separate each section: keywords, summary, skills, experience, ATS tips, company insights, checklist.\n- Replace `request_id` with this: {{$json.request_id}}\n- Replace `selected_job_id` with this: {{ $json.selected_job_id }}\n"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -280,
+        4440
+      ],
+      "id": "df3b9a91-0b8f-40cd-aea4-9d77d5d3f321",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "rMaumt8Pq7BXrWFE",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zeiivnxtkcqwlnmtxyfd.supabase.co/functions/v1/n8n-response",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplaWl2bnh0a2Nxd2xubXR4eWZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAwNzMyNzUsImV4cCI6MjA2NTY0OTI3NX0.lhahnsYyO9yEvnYTt-5fxZ6bxtDzqHSiOR0OABD_jSI"
+            },
+            {
+              "name": "X-N8N-Source",
+              "value": "railway-workflow"
+            },
+            {
+              "name": "X-Railway-URL",
+              "value": "primary-production-130e0.up.railway.app"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.message.content }}",
+        "options": {}
+      },
+      "name": "Send Resume to Frontend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        4440
+      ],
+      "id": "673528bd-024a-4d1e-8917-40b6d1338e8a",
+      "alwaysOutputData": true
+    }
+  ],
+  "connections": {
+    "Railway Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Resume or Cover Letter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Resume or Cover Letter": {
+      "main": [
+        [
+          {
+            "node": "Extract Resume Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Cover Letter Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Resume Data": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Cover Letter Data": {
+      "main": [
+        [
+          {
+            "node": "Generate Cover Letter with DeepSeek AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Cover Letter with DeepSeek AI": {
+      "main": [
+        [
+          {
+            "node": "Send Cover Letter to Frontend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Send Resume to Frontend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "67f584b75202bc6a28526ad150078335a25b0a2141416e46464e26617b29e13d"
+  }
+}
