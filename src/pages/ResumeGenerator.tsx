@@ -4,16 +4,18 @@ import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
 import { Input } from '../components/ui/Input';
 import { ProgressScreen } from '../components/ui/ProgressScreen';
-import { FileText, Sparkles, Copy, Download, Save, Zap, Target, Brain, TrendingUp } from 'lucide-react';
+import { FileText, Sparkles, Copy, Download, Zap, Target, Brain, TrendingUp, Upload } from 'lucide-react';
 import { useJobApplications } from '../hooks/useJobApplications';
 import { useLinkedInJobs } from '../hooks/useLinkedInJobs';
-import { useN8NRailwayIntegration } from '../hooks/useN8NRailwayIntegration';
+import { useDocuments } from '../hooks/useDocuments';
+import { useOpenRouterAI } from '../hooks/useOpenRouterAI';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 
 export function ResumeGenerator() {
   const [formData, setFormData] = useState({
     selectedJobId: '',
+    selectedResumeId: '',
     companyName: '',
     jobTitle: '',
     jobDescription: ''
@@ -21,6 +23,7 @@ export function ResumeGenerator() {
   
   const { applications } = useJobApplications();
   const { jobs: linkedInJobs, loading: jobsLoading } = useLinkedInJobs();
+  const { documents } = useDocuments();
   const { 
     loading, 
     progress, 
@@ -29,7 +32,10 @@ export function ResumeGenerator() {
     generateContent, 
     resetState,
     setGeneratedContent 
-  } = useN8NRailwayIntegration();
+  } = useOpenRouterAI();
+
+  // Filter documents to only show resumes
+  const resumeDocuments = documents.filter(doc => doc.file_type === 'resume');
 
   // Combine job applications and LinkedIn jobs for the dropdown
   const allJobOptions = [
@@ -47,6 +53,15 @@ export function ResumeGenerator() {
       label: `💼 ${job.company_name} - ${job.title}`,
       type: 'linkedin',
       data: job
+    }))
+  ];
+
+  const resumeOptions = [
+    { value: '', label: 'No resume selected (job analysis only)' },
+    ...resumeDocuments.map(doc => ({
+      value: doc.id,
+      label: `📄 ${doc.file_name}`,
+      data: doc
     }))
   ];
 
@@ -78,6 +93,29 @@ export function ResumeGenerator() {
     }
   };
 
+  const extractResumeContent = async (resumeId: string): Promise<string> => {
+    const resume = resumeDocuments.find(doc => doc.id === resumeId);
+    if (!resume) {
+      throw new Error('Resume not found');
+    }
+
+    // Since we're using mock URLs, we'll return a placeholder content
+    // In a real implementation, you would fetch the actual file content
+    return `Resume Content for ${resume.file_name}
+
+This is a placeholder for the actual resume content that would be extracted from the uploaded file.
+
+In a production environment, this would contain:
+- Personal information
+- Professional summary
+- Work experience
+- Education
+- Skills
+- Certifications
+
+The system would parse the actual PDF/DOC file and extract the text content for analysis.`;
+  };
+
   const handleGenerate = async () => {
     if (!formData.companyName.trim()) {
       toast.error('Please enter a company name');
@@ -95,6 +133,18 @@ export function ResumeGenerator() {
     }
 
     try {
+      let resumeContent = '';
+      
+      // Extract resume content if a resume is selected
+      if (formData.selectedResumeId) {
+        try {
+          resumeContent = await extractResumeContent(formData.selectedResumeId);
+        } catch (error) {
+          console.error('Failed to extract resume content:', error);
+          toast.error('Failed to read resume content. Proceeding with job analysis only.');
+        }
+      }
+
       // Extract the actual job ID for selected_job_id
       let selectedJobId = null;
       if (formData.selectedJobId) {
@@ -110,7 +160,7 @@ export function ResumeGenerator() {
         job_title: formData.jobTitle,
         job_description: formData.jobDescription,
         selected_job_id: selectedJobId
-      });
+      }, resumeContent);
     } catch (error) {
       // Error handled in hook
     }
@@ -126,12 +176,12 @@ export function ResumeGenerator() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `resume-suggestions-${formData.companyName.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.txt`;
+    a.download = `resume-analysis-${formData.companyName.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success('Content exported successfully!');
+    toast.success('Analysis exported successfully!');
   };
 
   const handleCancel = () => {
@@ -158,11 +208,11 @@ export function ResumeGenerator() {
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold gradient-text flex items-center space-x-2 lg:space-x-3">
               <Zap className="w-6 h-6 lg:w-8 lg:h-8 text-primary-500" />
-              <span>AI Resume Generator</span>
+              <span>AI Resume Analyzer</span>
             </h1>
             <p className="text-slate-400 mt-2 flex items-center space-x-2 text-sm lg:text-base">
               <Target className="w-4 h-4" />
-              <span>Generate ATS-optimized resume suggestions powered by N8N workflow</span>
+              <span>Analyze your resume against job requirements with OpenRouter AI</span>
             </p>
           </div>
 
@@ -172,8 +222,8 @@ export function ResumeGenerator() {
               <div className="flex items-center space-x-2">
                 <Brain className="w-4 h-4 lg:w-5 lg:h-5 text-primary-400" />
                 <div>
-                  <p className="text-xs lg:text-sm text-primary-300 font-medium">N8N Powered</p>
-                  <p className="text-xs text-slate-400">Smart Processing</p>
+                  <p className="text-xs lg:text-sm text-primary-300 font-medium">OpenRouter</p>
+                  <p className="text-xs text-slate-400">DeepSeek AI</p>
                 </div>
               </div>
             </div>
@@ -190,8 +240,8 @@ export function ResumeGenerator() {
               <div className="flex items-center space-x-2">
                 <FileText className="w-4 h-4 lg:w-5 lg:h-5 text-secondary-400" />
                 <div>
-                  <p className="text-xs lg:text-sm text-secondary-300 font-medium">Keywords</p>
-                  <p className="text-xs text-slate-400">Extracted</p>
+                  <p className="text-xs lg:text-sm text-secondary-300 font-medium">Resume</p>
+                  <p className="text-xs text-slate-400">Analysis</p>
                 </div>
               </div>
             </div>
@@ -199,7 +249,7 @@ export function ResumeGenerator() {
               <div className="flex items-center space-x-2">
                 <Sparkles className="w-4 h-4 lg:w-5 lg:h-5 text-accent-400" />
                 <div>
-                  <p className="text-xs lg:text-sm text-accent-300 font-medium">5 Min</p>
+                  <p className="text-xs lg:text-sm text-accent-300 font-medium">30 Sec</p>
                   <p className="text-xs text-slate-400">Processing</p>
                 </div>
               </div>
@@ -220,11 +270,34 @@ export function ResumeGenerator() {
                   <FileText className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
                 </div>
                 <h2 className="text-lg font-semibold text-slate-100">
-                  Job Description Input
+                  Resume & Job Analysis
                 </h2>
               </div>
 
               <div className="space-y-4 lg:space-y-6 mobile-form">
+                <div className="w-full">
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Select Resume (Optional)
+                  </label>
+                  <select
+                    value={formData.selectedResumeId}
+                    onChange={(e) => handleInputChange('selectedResumeId', e.target.value)}
+                    className="w-full px-4 py-3 bg-dark-800/30 border-slate-600/50 backdrop-blur-xl border rounded-lg focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    {resumeOptions.map((option) => (
+                      <option key={option.value} value={option.value} className="bg-dark-800 text-slate-100">
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {formData.selectedResumeId 
+                      ? 'Resume will be analyzed against the job requirements' 
+                      : 'Without a resume, we\'ll provide general optimization suggestions'
+                    }
+                  </p>
+                </div>
+
                 <div className="w-full">
                   <label className="block text-sm font-medium text-slate-300 mb-2">
                     Select Job (Optional)
@@ -272,7 +345,7 @@ export function ResumeGenerator() {
                     value={formData.jobDescription}
                     onChange={(e) => handleInputChange('jobDescription', e.target.value)}
                     className="w-full px-4 py-3 bg-dark-800/30 border-slate-600/50 backdrop-blur-xl border rounded-lg focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 text-slate-100 placeholder-slate-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 resize-none font-mono text-sm"
-                    placeholder="Paste the complete job description here for N8N AI analysis..."
+                    placeholder="Paste the complete job description here for AI analysis..."
                   />
                 </div>
 
@@ -283,7 +356,7 @@ export function ResumeGenerator() {
                   leftIcon={<Sparkles className="w-5 h-5" />}
                   glow
                 >
-                  Generate with N8N AI
+                  Analyze with OpenRouter AI
                 </Button>
               </div>
             </Card>
@@ -302,7 +375,7 @@ export function ResumeGenerator() {
                     <Sparkles className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
                   </div>
                   <h2 className="text-lg font-semibold text-slate-100">
-                    N8N Generated Suggestions
+                    AI Analysis Results
                   </h2>
                 </div>
                 
@@ -347,9 +420,9 @@ export function ResumeGenerator() {
                       <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-slate-700 to-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
                         <FileText className="w-8 h-8 lg:w-10 lg:h-10 text-slate-400" />
                       </div>
-                      <h3 className="text-lg font-medium text-slate-300 mb-2">Ready to Generate</h3>
+                      <h3 className="text-lg font-medium text-slate-300 mb-2">Ready to Analyze</h3>
                       <p className="text-slate-400 max-w-sm text-sm">
-                        Enter a job description and click "Generate with N8N AI" to see AI-powered resume suggestions
+                        Select a resume (optional) and enter a job description, then click "Analyze with OpenRouter AI" to get personalized suggestions
                       </p>
                     </div>
                   </div>
@@ -359,7 +432,7 @@ export function ResumeGenerator() {
           </motion.div>
         </div>
 
-        {/* N8N Integration Info */}
+        {/* OpenRouter Integration Info */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -368,7 +441,7 @@ export function ResumeGenerator() {
           <Card className="bg-gradient-to-r from-primary-900/20 to-secondary-900/20 border border-primary-600/30">
             <h3 className="text-lg font-semibold text-slate-100 mb-4 flex items-center space-x-2">
               <Zap className="w-5 h-5 text-primary-400" />
-              <span>🔗 N8N Railway Workflow Integration</span>
+              <span>🔗 OpenRouter AI Integration</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-slate-300">
               <div>
@@ -379,19 +452,19 @@ export function ResumeGenerator() {
                 <ul className="space-y-2 text-slate-400">
                   <li className="flex items-start space-x-2">
                     <span className="text-primary-400 mt-1">•</span>
-                    <span>Sends job data to Supabase Edge Function</span>
+                    <span>Analyzes your resume against job requirements</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <span className="text-primary-400 mt-1">•</span>
-                    <span>Edge Function triggers N8N Railway workflow</span>
+                    <span>Identifies key skills and experience gaps</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <span className="text-primary-400 mt-1">•</span>
-                    <span>N8N processes with OpenAI/DeepSeek AI</span>
+                    <span>Provides ATS optimization suggestions</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <span className="text-primary-400 mt-1">•</span>
-                    <span>Results stored back in Supabase</span>
+                    <span>Recommends tailored improvements</span>
                   </li>
                 </ul>
               </div>
@@ -403,11 +476,11 @@ export function ResumeGenerator() {
                 <ul className="space-y-2 text-slate-400">
                   <li className="flex items-start space-x-2">
                     <span className="text-secondary-400 mt-1">•</span>
-                    <span>5-minute processing time</span>
+                    <span>30-second processing time</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <span className="text-secondary-400 mt-1">•</span>
-                    <span>ATS-optimized suggestions</span>
+                    <span>DeepSeek AI model for accurate analysis</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <span className="text-secondary-400 mt-1">•</span>

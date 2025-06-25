@@ -60,8 +60,17 @@ export function useDocuments() {
         throw new Error('User not authenticated');
       }
 
-      // For now, we'll create a mock URL since we don't have storage set up
-      const mockUrl = `https://example.com/documents/${file.name}`;
+      // Create a more realistic mock URL
+      const mockUrl = `https://storage.googleapis.com/jobtracker-documents/${user.id}/${fileType}/${file.name}`;
+      
+      // Extract text content from resume if applicable
+      let resumeContent = null;
+      if (fileType === 'resume') {
+        // In a real implementation, you would extract text from the file
+        // For now, we'll use a placeholder
+        resumeContent = `This is extracted content from ${file.name}. 
+In a production environment, we would use a PDF parser or similar tool to extract the actual text content.`;
+      }
 
       // Save document record
       const { data, error } = await supabase
@@ -73,6 +82,7 @@ export function useDocuments() {
           file_url: mockUrl,
           file_size: file.size,
           linked_job_id: linkedJobId,
+          resume_content: resumeContent
         })
         .select()
         .single();

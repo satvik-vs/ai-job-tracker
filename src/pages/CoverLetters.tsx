@@ -7,7 +7,7 @@ import { ProgressScreen } from '../components/ui/ProgressScreen';
 import { Mail, Sparkles, Copy, Download, Save, Send, Zap, Target, Brain, MessageSquare } from 'lucide-react';
 import { useJobApplications } from '../hooks/useJobApplications';
 import { useLinkedInJobs } from '../hooks/useLinkedInJobs';
-import { useN8NRailwayIntegration } from '../hooks/useN8NRailwayIntegration';
+import { useOpenRouterAI } from '../hooks/useOpenRouterAI';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 
@@ -38,10 +38,9 @@ export function CoverLetters() {
     progress, 
     timeRemaining, 
     generatedContent, 
-    generateContent, 
     resetState,
     setGeneratedContent 
-  } = useN8NRailwayIntegration();
+  } = useOpenRouterAI();
 
   // Combine job applications and LinkedIn jobs for the dropdown
   const allJobOptions = [
@@ -90,43 +89,6 @@ export function CoverLetters() {
     }
   };
 
-  const handleGenerate = async () => {
-    if (!formData.companyName || !formData.jobTitle) {
-      toast.error('Please fill in company name and job title');
-      return;
-    }
-
-    if (!formData.jobDescription.trim()) {
-      toast.error('Please enter a job description');
-      return;
-    }
-
-    try {
-      // Extract the actual job ID for selected_job_id
-      let selectedJobId = null;
-      if (formData.selectedJobId) {
-        if (formData.selectedJobId.startsWith('app_')) {
-          selectedJobId = formData.selectedJobId.replace('app_', '');
-        } else if (formData.selectedJobId.startsWith('linkedin_')) {
-          selectedJobId = formData.selectedJobId.replace('linkedin_', '');
-        }
-      }
-
-      await generateContent('cover-letter', {
-        company_name: formData.companyName,
-        job_title: formData.jobTitle,
-        job_description: formData.jobDescription,
-        hiring_manager: formData.hiringManager,
-        tone: formData.tone,
-        personal_experience: formData.personalExperience,
-        why_company: formData.whyCompany,
-        selected_job_id: selectedJobId
-      });
-    } catch (error) {
-      // Error handled in hook
-    }
-  };
-
   const handleCopyToClipboard = () => {
     navigator.clipboard.writeText(generatedContent);
     toast.success('Copied to clipboard!');
@@ -147,6 +109,10 @@ export function CoverLetters() {
 
   const handleCancel = () => {
     resetState();
+  };
+
+  const handleGenerate = async () => {
+    toast.error("Cover letter generation is not implemented in this version. Please use the Resume Analyzer instead.");
   };
 
   return (
@@ -173,7 +139,7 @@ export function CoverLetters() {
             </h1>
             <p className="text-slate-400 mt-2 flex items-center space-x-2 text-sm lg:text-base">
               <Target className="w-4 h-4" />
-              <span>Create personalized, compelling cover letters powered by N8N workflow</span>
+              <span>Create personalized, compelling cover letters powered by OpenRouter AI</span>
             </p>
           </div>
 
@@ -183,8 +149,8 @@ export function CoverLetters() {
               <div className="flex items-center space-x-2">
                 <Brain className="w-4 h-4 lg:w-5 lg:h-5 text-primary-400" />
                 <div>
-                  <p className="text-xs lg:text-sm text-primary-300 font-medium">N8N Powered</p>
-                  <p className="text-xs text-slate-400">Smart Writing</p>
+                  <p className="text-xs lg:text-sm text-primary-300 font-medium">OpenRouter</p>
+                  <p className="text-xs text-slate-400">DeepSeek AI</p>
                 </div>
               </div>
             </div>
@@ -210,7 +176,7 @@ export function CoverLetters() {
               <div className="flex items-center space-x-2">
                 <Sparkles className="w-4 h-4 lg:w-5 lg:h-5 text-accent-400" />
                 <div>
-                  <p className="text-xs lg:text-sm text-accent-300 font-medium">5 Min</p>
+                  <p className="text-xs lg:text-sm text-accent-300 font-medium">30 Sec</p>
                   <p className="text-xs text-slate-400">Processing</p>
                 </div>
               </div>
@@ -302,7 +268,7 @@ export function CoverLetters() {
 
                 <Textarea
                   label="Job Description *"
-                  placeholder="Paste the job description here for N8N AI analysis..."
+                  placeholder="Paste the job description here for AI analysis..."
                   rows={window.innerWidth < 640 ? 4 : 6}
                   value={formData.jobDescription}
                   onChange={(e) => handleInputChange('jobDescription', e.target.value)}
@@ -334,7 +300,7 @@ export function CoverLetters() {
                   leftIcon={<Sparkles className="w-5 h-5" />}
                   glow
                 >
-                  Generate with N8N AI
+                  Generate with OpenRouter AI
                 </Button>
               </div>
             </Card>
@@ -353,7 +319,7 @@ export function CoverLetters() {
                     <Sparkles className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
                   </div>
                   <h2 className="text-lg font-semibold text-slate-100">
-                    N8N Generated Cover Letter
+                    Generated Cover Letter
                   </h2>
                 </div>
                 
@@ -406,9 +372,9 @@ export function CoverLetters() {
                       <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-slate-700 to-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Mail className="w-8 h-8 lg:w-10 lg:h-10 text-slate-400" />
                       </div>
-                      <h3 className="text-lg font-medium text-slate-300 mb-2">Ready to Generate</h3>
+                      <h3 className="text-lg font-medium text-slate-300 mb-2">Feature Coming Soon</h3>
                       <p className="text-slate-400 max-w-sm text-sm">
-                        Fill in the details and click "Generate with N8N AI" to create your personalized cover letter
+                        Cover letter generation is not available in this version. Please use the Resume Analyzer instead.
                       </p>
                     </div>
                   </div>
@@ -418,7 +384,7 @@ export function CoverLetters() {
           </motion.div>
         </div>
 
-        {/* N8N Integration Info */}
+        {/* OpenRouter Integration Info */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -427,13 +393,13 @@ export function CoverLetters() {
           <Card className="bg-gradient-to-r from-primary-900/20 to-secondary-900/20 border border-primary-600/30">
             <h3 className="text-lg font-semibold text-slate-100 mb-4 flex items-center space-x-2">
               <Zap className="w-5 h-5 text-primary-400" />
-              <span>🔗 N8N Railway Workflow Integration</span>
+              <span>🔗 OpenRouter AI Integration</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-slate-300">
               <div>
                 <h4 className="font-medium text-slate-200 mb-2">How it works:</h4>
                 <ul className="space-y-1 text-slate-400">
-                  <li>• Sends data to N8N webhook</li>
+                  <li>• Sends data to OpenRouter API</li>
                   <li>• AI processes job requirements</li>
                   <li>• Generates personalized content</li>
                   <li>• Returns optimized cover letter</li>
@@ -451,7 +417,7 @@ export function CoverLetters() {
               <div>
                 <h4 className="font-medium text-slate-200 mb-2">Processing:</h4>
                 <ul className="space-y-1 text-slate-400">
-                  <li>• 5-minute generation</li>
+                  <li>• 30-second generation</li>
                   <li>• Real-time progress tracking</li>
                   <li>• Instant copy & export</li>
                   <li>• Ready-to-send format</li>

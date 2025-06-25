@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
+import { DocumentViewer } from '../components/documents/DocumentViewer';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Upload, File, Download, Trash2, Search, Plus, FileText, Award, FolderOpen } from 'lucide-react';
@@ -39,6 +40,7 @@ export function Documents() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<string>('');
   const [uploadType, setUploadType] = useState<Database['public']['Tables']['documents']['Row']['file_type']>('resume');
+  const [viewingDocument, setViewingDocument] = useState<Database['public']['Tables']['documents']['Row'] | null>(null);
   const [linkedJobId, setLinkedJobId] = useState<string>('');
 
   const jobOptions = [
@@ -91,8 +93,8 @@ export function Documents() {
     }
   };
 
-  const handleDownload = (document: Database['public']['Tables']['documents']['Row']) => {
-    window.open(document.file_url, '_blank');
+  const handleViewDocument = (document: Database['public']['Tables']['documents']['Row']) => {
+    setViewingDocument(document);
   };
 
   if (loading) {
@@ -293,7 +295,7 @@ export function Documents() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDownload(document)}
+                      onClick={() => handleViewDocument(document)}
                     >
                       <Download className="w-4 h-4" />
                     </Button>
@@ -340,6 +342,15 @@ export function Documents() {
             </Button>
           )}
         </motion.div>
+      )}
+      
+      {/* Document Viewer Modal */}
+      {viewingDocument && (
+        <DocumentViewer
+          isOpen={!!viewingDocument}
+          onClose={() => setViewingDocument(null)}
+          document={viewingDocument}
+        />
       )}
     </div>
   );
