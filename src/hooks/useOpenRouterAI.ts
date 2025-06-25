@@ -103,10 +103,10 @@ Instructions:
       const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': `Bearer ${apiKey || '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'}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://tracker.satvik.live',
-          'X-Title': 'JobTracker AI',
+          'HTTP-Referer': 'https://jobtracker-ai.vercel.app',
+          'X-Title': 'JobTracker AI'
         },
         body: JSON.stringify({
           model: modelId,
@@ -194,10 +194,10 @@ Format as a comprehensive guide with clear sections and bullet points.`;
       const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': `Bearer ${apiKey || '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'}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://tracker.satvik.live',
-          'X-Title': 'JobTracker AI',
+          'HTTP-Referer': 'https://jobtracker-ai.vercel.app',
+          'X-Title': 'JobTracker AI'
         },
         body: JSON.stringify({
           model: modelId,

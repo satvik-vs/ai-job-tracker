@@ -44,11 +44,26 @@ In a production environment, the actual content would be displayed here.`);
   const handleDownload = () => {
     // Create a temporary link element
     const link = document.createElement('a');
-    link.href = document.file_url;
+    
+    // Check if the URL is a mock URL and create a blob instead
+    if (document.file_url.includes('example.com') || document.file_url.includes('storage.googleapis.com')) {
+      // Create a blob with placeholder content
+      const blob = new Blob([content || `This is a placeholder for ${document.file_name}`], { type: 'text/plain' });
+      link.href = URL.createObjectURL(blob);
+    } else {
+      link.href = document.file_url;
+    }
+    
     link.download = document.file_name;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    
+    // Revoke the object URL if we created one
+    if (link.href.startsWith('blob:')) {
+      URL.revokeObjectURL(link.href);
+    }
+    
     toast.success('Download started');
   };
 
@@ -60,7 +75,19 @@ In a production environment, the actual content would be displayed here.`);
 
   // Function to open document in new tab
   const handleOpenInNewTab = () => {
-    window.open(document.file_url, '_blank');
+    // For mock URLs, create a data URL with the content
+    if (document.file_url.includes('example.com') || document.file_url.includes('storage.googleapis.com')) {
+      const blob = new Blob([content || `This is a placeholder for ${document.file_name}`], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const newWindow = window.open(url, '_blank');
+      
+      // Clean up the URL after the window loads
+      if (newWindow) {
+        newWindow.onload = () => URL.revokeObjectURL(url);
+      }
+    } else {
+      window.open(document.file_url, '_blank');
+    }
   };
 
   // Determine file extension
@@ -83,17 +110,21 @@ In a production environment, the actual content would be displayed here.`);
     // For PDF files
     if (fileExtension === 'pdf') {
       return (
-        <div className="flex flex-col items-center justify-center h-64 space-y-4">
-          <FileText className="w-16 h-16 text-primary-400" />
-          <p className="text-slate-300 text-lg font-medium">PDF Preview</p>
-          <p className="text-slate-400 text-sm">PDF preview is not available in this version</p>
-          <div className="flex space-x-3">
-            <Button onClick={handleOpenInNewTab} leftIcon={<ExternalLink className="w-4 h-4" />}>
-              Open in New Tab
-            </Button>
-            <Button onClick={handleDownload} leftIcon={<Download className="w-4 h-4" />} variant="outline">
-              Download
-            </Button>
+        <div className="flex flex-col space-y-4">
+          <div className="bg-dark-800/70 p-4 rounded-lg border border-slate-700/50">
+            <div className="flex flex-col items-center justify-center h-64 space-y-4">
+              <FileText className="w-16 h-16 text-primary-400" />
+              <p className="text-slate-300 text-lg font-medium">PDF Document</p>
+              <p className="text-slate-400 text-sm text-center">
+                {document.file_name}<br/>
+                <span className="text-xs">({(document.file_size / 1024).toFixed(1)} KB)</span>
+              </p>
+              <div className="flex space-x-3">
+                <Button onClick={handleOpenInNewTab} leftIcon={<ExternalLink className="w-4 h-4" />}>
+                  Open in New Tab
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       );
@@ -128,10 +159,12 @@ In a production environment, the actual content would be displayed here.`);
     // For text content (resume_content or other text files)
     if (content || ['txt', 'md', 'html', 'css', 'js', 'json'].includes(fileExtension)) {
       return (
-        <div className="bg-dark-800/70 p-4 rounded-lg overflow-auto max-h-96">
-          <pre className="text-slate-300 whitespace-pre-wrap font-mono text-sm">
-            {content}
-          </pre>
+        <div className="flex flex-col space-y-4">
+          <div className="bg-dark-800/70 p-4 rounded-lg overflow-auto max-h-96 border border-slate-700/50">
+            <pre className="text-slate-300 whitespace-pre-wrap font-mono text-sm">
+              {content}
+            </pre>
+          </div>
         </div>
       );
     }
