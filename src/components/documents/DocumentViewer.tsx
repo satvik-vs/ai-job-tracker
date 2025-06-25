@@ -1,22 +1,44 @@
-import React, { useState } from 'react';
-import { Card } from '../ui/Card';
+import React, { useState, useEffect } from 'react';
+import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { X, Download, Copy, FileText, File } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Download, Copy, FileText, File, ExternalLink } from 'lucide-react';
+import { Database } from '../../lib/database.types';
+import toast from 'react-hot-toast';
+
+type Document = Database['public']['Tables']['documents']['Row'];
 
 interface DocumentViewerProps {
   isOpen: boolean;
   onClose: () => void;
-  document: {
-    id: string;
-    file_name: string;
-    file_type: string;
-    file_url: string;
-  };
+  document: Document;
 }
 
 export function DocumentViewer({ isOpen, onClose, document }: DocumentViewerProps) {
   const [loading, setLoading] = useState(true);
+  const [content, setContent] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setLoading(true);
+      
+      // In a real implementation, you would fetch the document content
+      // For now, we'll simulate loading and show a placeholder
+      const timer = setTimeout(() => {
+        setLoading(false);
+        
+        // For resume documents, show the resume_content if available
+        if (document.file_type === 'resume' && document.resume_content) {
+          setContent(document.resume_content);
+        } else {
+          setContent(`This is a placeholder for the content of ${document.file_name}.
+          
+In a production environment, the actual content would be displayed here.`);
+        }
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, document]);
 
   // Function to handle document download
   const handleDownload = () => {
@@ -27,13 +49,18 @@ export function DocumentViewer({ isOpen, onClose, document }: DocumentViewerProp
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    toast.success('Download started');
   };
 
   // Function to handle document copy link
   const handleCopyLink = () => {
     navigator.clipboard.writeText(document.file_url);
-    // Show toast or notification
-    alert('Document link copied to clipboard!');
+    toast.success('Document link copied to clipboard');
+  };
+
+  // Function to open document in new tab
+  const handleOpenInNewTab = () => {
+    window.open(document.file_url, '_blank');
   };
 
   // Determine file extension
@@ -47,7 +74,7 @@ export function DocumentViewer({ isOpen, onClose, document }: DocumentViewerProp
   const renderDocumentContent = () => {
     if (loading) {
       return (
-        <div className="flex items-center justify-center h-full">
+        <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
         </div>
       );
@@ -56,35 +83,54 @@ export function DocumentViewer({ isOpen, onClose, document }: DocumentViewerProp
     // For PDF files
     if (fileExtension === 'pdf') {
       return (
-        <iframe 
-          src={document.file_url} 
-          className="w-full h-full rounded-lg"
-          onLoad={() => setLoading(false)}
-        />
+        <div className="flex flex-col items-center justify-center h-64 space-y-4">
+          <FileText className="w-16 h-16 text-primary-400" />
+          <p className="text-slate-300 text-lg font-medium">PDF Preview</p>
+          <p className="text-slate-400 text-sm">PDF preview is not available in this version</p>
+          <div className="flex space-x-3">
+            <Button onClick={handleOpenInNewTab} leftIcon={<ExternalLink className="w-4 h-4" />}>
+              Open in New Tab
+            </Button>
+            <Button onClick={handleDownload} leftIcon={<Download className="w-4 h-4" />} variant="outline">
+              Download
+            </Button>
+          </div>
+        </div>
       );
     }
 
     // For image files
     if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
       return (
-        <img 
-          src={document.file_url} 
-          alt={document.file_name} 
-          className="max-w-full max-h-full object-contain"
-          onLoad={() => setLoading(false)}
-        />
+        <div className="flex flex-col items-center space-y-4">
+          <img 
+            src={document.file_url} 
+            alt={document.file_name} 
+            className="max-w-full max-h-64 object-contain rounded-lg"
+            onLoad={() => setLoading(false)}
+            onError={() => {
+              setLoading(false);
+              toast.error('Failed to load image');
+            }}
+          />
+          <div className="flex space-x-3">
+            <Button onClick={handleOpenInNewTab} leftIcon={<ExternalLink className="w-4 h-4" />}>
+              Open in New Tab
+            </Button>
+            <Button onClick={handleDownload} leftIcon={<Download className="w-4 h-4" />} variant="outline">
+              Download
+            </Button>
+          </div>
+        </div>
       );
     }
 
-    // For text files
-    if (['txt', 'md', 'html', 'css', 'js', 'json'].includes(fileExtension)) {
+    // For text content (resume_content or other text files)
+    if (content || ['txt', 'md', 'html', 'css', 'js', 'json'].includes(fileExtension)) {
       return (
-        <div className="bg-dark-800 p-4 rounded-lg overflow-auto h-full">
-          <pre className="text-slate-300 whitespace-pre-wrap">
-            {/* In a real implementation, you would fetch and display the text content */}
-            {`This is a placeholder for the content of ${document.file_name}.
-            
-In a production environment, the actual text content would be displayed here.`}
+        <div className="bg-dark-800/70 p-4 rounded-lg overflow-auto max-h-96">
+          <pre className="text-slate-300 whitespace-pre-wrap font-mono text-sm">
+            {content}
           </pre>
         </div>
       );
@@ -92,89 +138,72 @@ In a production environment, the actual text content would be displayed here.`}
 
     // Default fallback
     return (
-      <div className="flex flex-col items-center justify-center h-full">
-        <File className="w-24 h-24 text-slate-400 mb-4" />
-        <p className="text-slate-300 text-lg font-medium mb-2">{document.file_name}</p>
-        <p className="text-slate-400 text-sm mb-4">This file type cannot be previewed</p>
-        <Button onClick={handleDownload} leftIcon={<Download className="w-4 h-4" />}>
-          Download to View
-        </Button>
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <File className="w-16 h-16 text-slate-400" />
+        <p className="text-slate-300 text-lg font-medium">{document.file_name}</p>
+        <p className="text-slate-400 text-sm">This file type cannot be previewed</p>
+        <div className="flex space-x-3">
+          <Button onClick={handleOpenInNewTab} leftIcon={<ExternalLink className="w-4 h-4" />}>
+            Open in New Tab
+          </Button>
+          <Button onClick={handleDownload} leftIcon={<Download className="w-4 h-4" />} variant="outline">
+            Download
+          </Button>
+        </div>
       </div>
     );
   };
 
-  if (!isOpen) return null;
-
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
-              onClick={onClose}
-            />
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative inline-block w-full max-w-4xl bg-dark-800/95 backdrop-blur-xl rounded-xl text-left overflow-hidden shadow-dark-lg transform transition-all my-8 mx-auto border border-slate-700/50 h-[80vh] flex flex-col"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-slate-700/50 bg-dark-800/50">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-100 truncate max-w-md">
-                      {document.file_name}
-                    </h3>
-                    <p className="text-sm text-slate-400">
-                      {document.file_type.replace('-', ' ')}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyLink}
-                    leftIcon={<Copy className="w-4 h-4" />}
-                  >
-                    Copy Link
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDownload}
-                    leftIcon={<Download className="w-4 h-4" />}
-                  >
-                    Download
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onClose}
-                    className="p-2 rounded-full hover:bg-dark-700/50"
-                  >
-                    <X className="w-5 h-5" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Document Content */}
-              <div className="flex-1 overflow-auto p-4">
-                {renderDocumentContent()}
-              </div>
-            </motion.div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={document.file_name}
+      size="lg"
+      footer={
+        <div className="flex justify-end space-x-3">
+          <Button
+            variant="outline"
+            onClick={handleCopyLink}
+            leftIcon={<Copy className="w-4 h-4" />}
+          >
+            Copy Link
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleDownload}
+            leftIcon={<Download className="w-4 h-4" />}
+          >
+            Download
+          </Button>
+          <Button
+            onClick={handleOpenInNewTab}
+            leftIcon={<ExternalLink className="w-4 h-4" />}
+          >
+            Open in New Tab
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        <div className="flex items-center space-x-3 bg-dark-800/50 p-3 rounded-lg">
+          <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
+            <FileText className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <p className="text-sm text-slate-300">
+              <span className="font-medium">{document.file_type.replace('-', ' ')}</span>
+              <span className="mx-2">•</span>
+              <span>{(document.file_size / 1024).toFixed(1)} KB</span>
+            </p>
+            <p className="text-xs text-slate-400">
+              Uploaded on {new Date(document.uploaded_on).toLocaleDateString()}
+            </p>
           </div>
         </div>
-      )}
-    </AnimatePresence>
+
+        {renderDocumentContent()}
+      </div>
+    </Modal>
   );
 }

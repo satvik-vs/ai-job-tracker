@@ -24,10 +24,10 @@ export function useOpenRouterAI() {
   const [progress, setProgress] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [generatedContent, setGeneratedContent] = useState('');
+  const [apiKey, setApiKey] = useState('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');
+  const [modelId, setModelId] = useState('deepseek/deepseek-r1-0528:free');
 
-  const OPENROUTER_API_KEY = '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';
   const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
-  const MODEL_ID = 'deepseek/deepseek-r1-0528:free';
 
   const startProgressTimer = (duration: number = 30) => {
     setTimeRemaining(duration);
@@ -99,56 +99,65 @@ Instructions:
 - Replace 'request_id' with this: ${requestId}
 - Replace 'selected_job_id' with this: ${selectedJobId || ''}`;
 
-    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://tracker.satvik.live',
-        'X-Title': 'JobTracker AI',
-      },
-      body: JSON.stringify({
-        model: MODEL_ID,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.7,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data: OpenRouterResponse = await response.json();
-    const content = data.choices[0]?.message?.content;
-
-    if (!content) {
-      throw new Error('No content received from OpenRouter API');
-    }
-
     try {
-      // Try to parse as JSON first
-      const jsonResponse = JSON.parse(content);
-      return {
-        content: jsonResponse.content,
-        metadata: jsonResponse.metadata || {
-          keywords_found: [],
-          ats_score: 85,
-          suggestions_count: 8
-        }
-      };
-    } catch {
-      // If not JSON, return as plain text
-      return {
-        content,
-        metadata: {
-          keywords_found: [],
-          ats_score: 85,
-          suggestions_count: 8
-        }
-      };
+      const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://tracker.satvik.live',
+          'X-Title': 'JobTracker AI',
+        },
+        body: JSON.stringify({
+          model: modelId,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
+      }
+
+      const data: OpenRouterResponse = await response.json();
+      const content = data.choices[0]?.message?.content;
+
+      if (!content) {
+        throw new Error('No content received from OpenRouter API');
+      }
+
+      try {
+        // Try to parse as JSON first
+        const jsonResponse = JSON.parse(content);
+        return {
+          content: jsonResponse.content,
+          metadata: jsonResponse.metadata || {
+            keywords_found: [],
+            ats_score: 85,
+            suggestions_count: 8
+          }
+        };
+      } catch {
+        // If not JSON, return as plain text
+        return {
+          content,
+          metadata: {
+            keywords_found: [],
+            ats_score: 85,
+            suggestions_count: 8
+          }
+        };
+      }
+    } catch (error: any) {
+      console.error('OpenRouter API error:', error);
+      
+      // Fallback to job-only analysis if resume analysis fails
+      console.log('Falling back to job-only analysis...');
+      return analyzeJobOnly(jobTitle, companyName, jobDescription, selectedJobId);
     }
   };
 
@@ -181,43 +190,49 @@ Provide detailed suggestions for:
 
 Format as a comprehensive guide with clear sections and bullet points.`;
 
-    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://tracker.satvik.live',
-        'X-Title': 'JobTracker AI',
-      },
-      body: JSON.stringify({
-        model: MODEL_ID,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.7,
-      }),
-    });
+    try {
+      const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://tracker.satvik.live',
+          'X-Title': 'JobTracker AI',
+        },
+        body: JSON.stringify({
+          model: modelId,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.7,
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data: OpenRouterResponse = await response.json();
-    const content = data.choices[0]?.message?.content;
-
-    if (!content) {
-      throw new Error('No content received from OpenRouter API');
-    }
-
-    return {
-      content,
-      metadata: {
-        keywords_found: [],
-        ats_score: 80,
-        suggestions_count: 10
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
       }
-    };
+
+      const data: OpenRouterResponse = await response.json();
+      const content = data.choices[0]?.message?.content;
+
+      if (!content) {
+        throw new Error('No content received from OpenRouter API');
+      }
+
+      return {
+        content,
+        metadata: {
+          keywords_found: [],
+          ats_score: 80,
+          suggestions_count: 10
+        }
+      };
+    } catch (error: any) {
+      console.error('OpenRouter API error:', error);
+      throw error;
+    }
   };
 
   const generateContent = async (
@@ -233,6 +248,21 @@ Format as a comprehensive guide with clear sections and bullet points.`;
       if (!user) throw new Error('User not authenticated');
 
       console.log('🎯 Starting content generation:', { type, formData, hasResume: !!resumeContent });
+
+      // Check for user-specific API key in settings
+      try {
+        const { data: settings } = await supabase
+          .from('user_settings')
+          .select('openai_api_key, ai_provider')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (settings?.openai_api_key) {
+          setApiKey(settings.openai_api_key);
+        }
+      } catch (error) {
+        console.log('No custom API key found, using default');
+      }
 
       const timer = startProgressTimer(30);
       
@@ -258,7 +288,7 @@ Format as a comprehensive guide with clear sections and bullet points.`;
           );
         }
       } else {
-        // Cover letter generation (existing logic can be kept)
+        // Cover letter generation (not implemented)
         throw new Error('Cover letter generation not implemented in this version');
       }
 
@@ -271,7 +301,8 @@ Format as a comprehensive guide with clear sections and bullet points.`;
         job_application_id: formData.selected_job_id || null,
         type,
         content: result.content,
-        is_used: false
+        is_used: false,
+        request_id: `openrouter-${Date.now()}`
       });
 
       setGeneratedContent(result.content);
@@ -296,6 +327,11 @@ Format as a comprehensive guide with clear sections and bullet points.`;
     setGeneratedContent('');
   };
 
+  const updateSettings = (newApiKey: string, newModelId: string) => {
+    setApiKey(newApiKey);
+    setModelId(newModelId);
+  };
+
   return {
     loading,
     progress,
@@ -303,6 +339,9 @@ Format as a comprehensive guide with clear sections and bullet points.`;
     generatedContent,
     generateContent,
     resetState,
-    setGeneratedContent
+    setGeneratedContent,
+    apiKey,
+    modelId,
+    updateSettings
   };
 }
