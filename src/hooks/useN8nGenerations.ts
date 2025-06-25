@@ -147,11 +147,26 @@ export function useN8nGenerations() {
       // Create a placeholder entry in the appropriate table
       let generationId;
       
+      // Extract the actual job ID from the selectedJobId format
+      let actualJobId = null;
+      if (jobId) {
+        try {
+          // Validate that it's a proper UUID
+          const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (uuidPattern.test(jobId)) {
+            actualJobId = jobId;
+          }
+        } catch (error) {
+          console.error('Invalid job ID format:', error);
+          actualJobId = null;
+        }
+      }
+      
       if (type === 'resume') {
         const { data, error } = await supabase
           .from('n8n_generations_resume')
           .insert({
-            job_id: jobId,
+            job_id: actualJobId,
             job_type: jobType as 'application' | 'linkedin',
             company_name: formData.companyName,
             job_title: formData.jobTitle,
@@ -172,7 +187,7 @@ export function useN8nGenerations() {
         const { data, error } = await supabase
           .from('n8n_generations_cover_letter')
           .insert({
-            job_id: jobId,
+            job_id: actualJobId,
             job_type: jobType as 'application' | 'linkedin',
             company_name: formData.companyName,
             job_title: formData.jobTitle,
@@ -202,8 +217,8 @@ export function useN8nGenerations() {
         data: {
           company_name: formData.companyName,
           job_title: formData.jobTitle,
-          job_description: formData.jobDescription,
-          selected_job_id: jobId,
+          job_description: formData.jobDescription.substring(0, 5000), // Limit length to avoid payload issues
+          selected_job_id: actualJobId,
           // Cover letter specific fields
           hiring_manager: formData.hiringManager || '',
           tone: formData.tone || 'professional',
@@ -215,19 +230,25 @@ export function useN8nGenerations() {
       console.log('🚀 Sending to N8N Railway test webhook:', payload);
 
       // Send directly to N8N Railway test webhook
-      const response = await axios.post(
-        'https://primary-production-130e0.up.railway.app/webhook-test/job-application-received',
-        payload,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'User-Agent': 'JobTracker-AI/1.0',
-            'Accept': 'application/json'
+      try {
+        const response = await axios.post(
+          'https://primary-production-130e0.up.railway.app/webhook-test/job-application-received',
+          payload,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'User-Agent': 'JobTracker-AI/1.0',
+              'Accept': 'application/json'
+            }
           }
-        }
-      );
+        );
 
-      console.log('✅ N8N webhook response:', response.data);
+        console.log('✅ N8N webhook response:', response.data);
+      } catch (error) {
+        console.error('Error sending to N8N webhook:', error);
+        // Continue anyway - we'll poll for results
+        toast.warning('N8N webhook request failed, but we\'ll continue processing');
+      }
       
       // Start progress timer
       startProgressTimer(300); // 5 minutes
