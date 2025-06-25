@@ -11,8 +11,8 @@ export const N8N_RAILWAY_CONFIG = {
   WEBHOOK_URL: 'https://primary-production-130e0.up.railway.app/webhook/job-application-received',
   
   // Supabase edge function URLs
-  TRIGGER_FUNCTION_URL: 'https://zeiivnxtkcqwlnmtxyfd.supabase.co/functions/v1/n8n-trigger',
-  RESPONSE_FUNCTION_URL: 'https://zeiivnxtkcqwlnmtxyfd.supabase.co/functions/v1/n8n-response',
+  TRIGGER_FUNCTION_URL: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/n8n-trigger`,
+  RESPONSE_FUNCTION_URL: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/n8n-response`,
   
   // Timeout settings
   PROCESSING_TIMEOUT: 300000, // 5 minutes

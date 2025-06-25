@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,7 +28,7 @@ serve(async (req) => {
       throw new Error('Missing required fields: type, user_id, request_id, data')
     }
 
-    // Prepare payload for N8N
+    // Prepare payload for N8N - EXACTLY matching your workflow structure
     const n8nPayload = {
       type,
       user_id,
@@ -49,22 +48,27 @@ serve(async (req) => {
       }
     }
 
-    console.log('📤 Sending to N8N:', n8nPayload)
+    console.log('📤 Sending to N8N Railway:', JSON.stringify(n8nPayload, null, 2))
 
-    // Send to N8N Railway webhook
+    // Send to N8N Railway webhook with proper headers
     const n8nResponse = await fetch('https://primary-production-130e0.up.railway.app/webhook/job-application-received', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'JobTracker-AI/1.0',
+        'Accept': 'application/json',
         'X-Request-Source': 'supabase-edge-function',
         'X-Railway-Domain': 'primary-production-130e0.up.railway.app'
       },
       body: JSON.stringify(n8nPayload)
     })
 
+    console.log('N8N Response Status:', n8nResponse.status)
+    console.log('N8N Response Headers:', Object.fromEntries(n8nResponse.headers.entries()))
+
     if (!n8nResponse.ok) {
       const errorText = await n8nResponse.text().catch(() => 'Unknown error')
+      console.error('N8N Error Response:', errorText)
       throw new Error(`N8N webhook failed: ${n8nResponse.status} ${n8nResponse.statusText} - ${errorText}`)
     }
 
@@ -76,7 +80,8 @@ serve(async (req) => {
         success: true, 
         message: 'N8N workflow triggered successfully',
         request_id,
-        n8n_response: responseData
+        n8n_response: responseData,
+        payload_sent: n8nPayload
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -88,7 +93,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        success: false 
+        success: false,
+        details: error.stack
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

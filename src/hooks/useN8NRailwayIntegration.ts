@@ -54,22 +54,28 @@ export function useN8NRailwayIntegration() {
     console.log('🚀 Sending to N8N via Supabase Edge Function:', payload);
 
     // Send to Supabase edge function which will trigger N8N
-    const response = await fetch(N8N_RAILWAY_CONFIG.TRIGGER_FUNCTION_URL, {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/n8n-trigger`, {
       method: 'POST',
       headers: {
-        ...N8N_RAILWAY_CONFIG.HEADERS,
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        'Accept': 'application/json'
       },
       body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      throw new Error(`Supabase edge function failed: ${response.status} ${response.statusText} - ${errorText}`);
+      console.error('Edge function error:', errorText);
+      throw new Error(`Edge function failed: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const result = await response.json();
     console.log('✅ N8N trigger response:', result);
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to trigger N8N workflow');
+    }
 
     return requestId;
   };
