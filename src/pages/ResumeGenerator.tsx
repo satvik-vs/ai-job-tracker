@@ -241,8 +241,8 @@ The system would parse the actual PDF/DOC file and extract the text content for 
               <div className="flex items-center space-x-2">
                 <Brain className="w-4 h-4 lg:w-5 lg:h-5 text-primary-400" />
                 <div>
-                  <p className="text-xs lg:text-sm text-primary-300 font-medium">OpenRouter</p>
-                  <p className="text-xs text-slate-400">DeepSeek AI</p>
+                  <p className="text-xs lg:text-sm text-primary-300 font-medium">OpenRouter AI</p>
+                  <p className="text-xs text-slate-400">Powered by DeepSeek</p>
                 </div>
               </div>
             </div>
@@ -268,7 +268,7 @@ The system would parse the actual PDF/DOC file and extract the text content for 
               <div className="flex items-center space-x-2">
                 <Sparkles className="w-4 h-4 lg:w-5 lg:h-5 text-accent-400" />
                 <div>
-                  <p className="text-xs lg:text-sm text-accent-300 font-medium">30 Sec</p>
+                  <p className="text-xs lg:text-sm text-accent-300 font-medium">Fast Analysis</p>
                   <p className="text-xs text-slate-400">Processing</p>
                 </div>
               </div>
@@ -378,13 +378,18 @@ The system would parse the actual PDF/DOC file and extract the text content for 
 
                 <Button
                   onClick={handleGenerate}
-                  disabled={loading}
+                  disabled={loading || (!apiKey && !settingsForm.apiKey)}
                   className="w-full"
                   leftIcon={<Sparkles className="w-5 h-5" />}
                   glow
                 >
                   Analyze with OpenRouter AI
                 </Button>
+                {!apiKey && !settingsForm.apiKey && (
+                  <p className="text-xs text-warning-400 mt-2 text-center">
+                    Please configure your OpenRouter API key in settings
+                  </p>
+                )}
               </div>
             </Card>
           </motion.div>
@@ -546,15 +551,18 @@ The system would parse the actual PDF/DOC file and extract the text content for 
             <label className="block text-sm font-medium text-slate-300 mb-2">
               OpenRouter API Key
             </label>
-            <Input
+            <input
               type="password"
               value={settingsForm.apiKey}
               onChange={(e) => setSettingsForm(prev => ({ ...prev, apiKey: e.target.value }))}
-              placeholder={apiKey ? "••••••••" + apiKey.slice(-4) : "Enter your OpenRouter API key"}
-              variant="glass"
+              placeholder={apiKey ? "••••••••" + apiKey.slice(-4) : "sk-or-v1-..."}
+              className="w-full px-4 py-3 bg-dark-800/30 border-slate-600/50 backdrop-blur-xl border rounded-lg focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 text-slate-100 placeholder-slate-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             />
             <p className="text-xs text-slate-400 mt-1">
-              Leave blank to use the default API key
+              Enter your OpenRouter API key (required)
+            </p>
+            <p className="text-xs text-primary-400 mt-1">
+              Default key: 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
             </p>
           </div>
           
@@ -590,6 +598,8 @@ The system would parse the actual PDF/DOC file and extract the text content for 
             <p className="text-xs text-slate-400">
               OpenRouter provides access to various AI models through a unified API. 
               You can get your own API key at <a href="https://openrouter.ai" target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:text-primary-300">openrouter.ai</a>.
+              <br/><br/>
+              <strong>Important:</strong> Make sure to include the full API key starting with "sk-or-v1-".
             </p>
           </div>
         </div>
