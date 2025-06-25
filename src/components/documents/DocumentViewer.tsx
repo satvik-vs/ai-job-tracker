@@ -42,28 +42,39 @@ In a production environment, the actual content would be displayed here.`);
 
   // Function to handle document download
   const handleDownload = () => {
-    // Create a temporary link element
-    const link = document.createElement('a');
+    // Check if the URL is a data URL
+    if (document.file_url.startsWith('data:')) {
+      // For data URLs, we can just open them directly
+      const link = document.createElement('a');
+      link.href = document.file_url;
+      link.download = document.file_name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('Download started');
+      return;
+    }
     
     // Check if the URL is a mock URL and create a blob instead
-    if (document.file_url.includes('example.com') || document.file_url.includes('storage.googleapis.com')) {
+    if (document.file_url.includes('example.com') || 
+        document.file_url.includes('storage.googleapis.com') || 
+        document.file_url.includes('jobtracker-documents')) {
       // Create a blob with placeholder content
       const blob = new Blob([content || `This is a placeholder for ${document.file_name}`], { type: 'text/plain' });
-      link.href = URL.createObjectURL(blob);
-    } else {
-      link.href = document.file_url;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = document.file_name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success('Download started');
+      return;
     }
     
-    link.download = document.file_name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // Revoke the object URL if we created one
-    if (link.href.startsWith('blob:')) {
-      URL.revokeObjectURL(link.href);
-    }
-    
+    // For real URLs, open in a new tab
+    window.open(document.file_url, '_blank');
     toast.success('Download started');
   };
 
@@ -75,8 +86,16 @@ In a production environment, the actual content would be displayed here.`);
 
   // Function to open document in new tab
   const handleOpenInNewTab = () => {
+    // For data URLs, we can just open them directly
+    if (document.file_url.startsWith('data:')) {
+      window.open(document.file_url, '_blank');
+      return;
+    }
+    
     // For mock URLs, create a data URL with the content
-    if (document.file_url.includes('example.com') || document.file_url.includes('storage.googleapis.com')) {
+    if (document.file_url.includes('example.com') || 
+        document.file_url.includes('storage.googleapis.com') || 
+        document.file_url.includes('jobtracker-documents')) {
       const blob = new Blob([content || `This is a placeholder for ${document.file_name}`], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const newWindow = window.open(url, '_blank');
@@ -85,9 +104,11 @@ In a production environment, the actual content would be displayed here.`);
       if (newWindow) {
         newWindow.onload = () => URL.revokeObjectURL(url);
       }
-    } else {
-      window.open(document.file_url, '_blank');
+      return;
     }
+    
+    // For real URLs, open in a new tab
+    window.open(document.file_url, '_blank');
   };
 
   // Determine file extension
