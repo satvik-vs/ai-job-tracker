@@ -109,6 +109,8 @@ EDUCATION
         } catch (error) {
           console.error('Error extracting text from resume:', error);
           resumeContent = `Failed to extract content from ${file.name}. Using placeholder content instead.`;
+        }
+      }
       // Create a mock URL for the document
       let mockUrl = '';
       let resumeContent = null;
