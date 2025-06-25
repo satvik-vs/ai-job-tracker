@@ -296,9 +296,9 @@ export function CoverLetters() {
                 <Button
                   onClick={handleGenerate}
                   disabled={loading}
-                  className="w-full"
+                  className="w-full opacity-50 cursor-not-allowed"
                   leftIcon={<Sparkles className="w-5 h-5" />}
-                  glow
+                  variant="outline"
                 >
                   Generate with OpenRouter AI
                 </Button>
@@ -372,9 +372,9 @@ export function CoverLetters() {
                       <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-slate-700 to-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Mail className="w-8 h-8 lg:w-10 lg:h-10 text-slate-400" />
                       </div>
-                      <h3 className="text-lg font-medium text-slate-300 mb-2">Feature Coming Soon</h3>
+                      <h3 className="text-lg font-medium text-slate-300 mb-2">Coming Soon</h3>
                       <p className="text-slate-400 max-w-sm text-sm">
-                        Cover letter generation is not available in this version. Please use the Resume Analyzer instead.
+                        Cover letter generation is coming soon. Please use the Resume Analyzer in the meantime.
                       </p>
                     </div>
                   </div>

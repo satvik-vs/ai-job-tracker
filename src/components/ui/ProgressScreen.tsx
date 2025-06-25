@@ -138,7 +138,7 @@ export function ProgressScreen({ type, progress, timeRemaining, onCancel }: Prog
               <div className="space-y-2 text-xs text-slate-400">
                 <div className={`flex items-center space-x-2 ${progress >= 20 ? 'text-success-400' : ''}`}>
                   <div className={`w-2 h-2 rounded-full ${progress >= 20 ? 'bg-success-400' : 'bg-slate-600'}`} />
-                  <span>Analyzing job description</span>
+                  <span>Analyzing job requirements</span>
                 </div>
                 <div className={`flex items-center space-x-2 ${progress >= 40 ? 'text-success-400' : ''}`}>
                   <div className={`w-2 h-2 rounded-full ${progress >= 40 ? 'bg-success-400' : 'bg-slate-600'}`} />
@@ -163,7 +163,7 @@ export function ProgressScreen({ type, progress, timeRemaining, onCancel }: Prog
             {onCancel && (
               <button
                 onClick={onCancel}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                className="text-slate-400 hover:text-slate-300 text-sm transition-colors"
               >
                 Cancel Generation
               </button>

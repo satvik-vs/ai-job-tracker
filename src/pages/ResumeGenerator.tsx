@@ -2,15 +2,16 @@ import React, { useState } from 'react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
-import { Input } from '../components/ui/Input';
+import { Input } from '../components/ui/Input'; 
 import { ProgressScreen } from '../components/ui/ProgressScreen';
-import { FileText, Sparkles, Copy, Download, Zap, Target, Brain, TrendingUp, Upload } from 'lucide-react';
+import { FileText, Sparkles, Copy, Download, Zap, Target, Brain, TrendingUp, Upload, Settings } from 'lucide-react';
 import { useJobApplications } from '../hooks/useJobApplications';
 import { useLinkedInJobs } from '../hooks/useLinkedInJobs';
 import { useDocuments } from '../hooks/useDocuments';
 import { useOpenRouterAI } from '../hooks/useOpenRouterAI';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { Modal } from '../components/ui/Modal';
 
 export function ResumeGenerator() {
   const [formData, setFormData] = useState({
@@ -19,6 +20,11 @@ export function ResumeGenerator() {
     companyName: '',
     jobTitle: '',
     jobDescription: ''
+  });
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsForm, setSettingsForm] = useState({
+    apiKey: '',
+    modelId: 'deepseek/deepseek-r1-0528:free'
   });
   
   const { applications } = useJobApplications();
@@ -31,7 +37,10 @@ export function ResumeGenerator() {
     generatedContent, 
     generateContent, 
     resetState,
-    setGeneratedContent 
+    setGeneratedContent,
+    apiKey,
+    modelId,
+    updateSettings
   } = useOpenRouterAI();
 
   // Filter documents to only show resumes
@@ -99,8 +108,12 @@ export function ResumeGenerator() {
       throw new Error('Resume not found');
     }
 
-    // Since we're using mock URLs, we'll return a placeholder content
-    // In a real implementation, you would fetch the actual file content
+    // If resume has content stored, use that
+    if (resume.resume_content) {
+      return resume.resume_content;
+    }
+
+    // Otherwise return a placeholder
     return `Resume Content for ${resume.file_name}
 
 This is a placeholder for the actual resume content that would be extracted from the uploaded file.
@@ -188,6 +201,12 @@ The system would parse the actual PDF/DOC file and extract the text content for 
     resetState();
   };
 
+  const handleSaveSettings = () => {
+    updateSettings(settingsForm.apiKey, settingsForm.modelId);
+    toast.success('AI settings updated');
+    setShowSettings(false);
+  };
+
   return (
     <>
       {loading && (
@@ -269,9 +288,17 @@ The system would parse the actual PDF/DOC file and extract the text content for 
                 <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg">
                   <FileText className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
                 </div>
-                <h2 className="text-lg font-semibold text-slate-100">
+                <h2 className="text-lg font-semibold text-slate-100 flex-1">
                   Resume & Job Analysis
                 </h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSettings(true)}
+                  leftIcon={<Settings className="w-4 h-4" />}
+                >
+                  AI Settings
+                </Button>
               </div>
 
               <div className="space-y-4 lg:space-y-6 mobile-form">
@@ -496,6 +523,77 @@ The system would parse the actual PDF/DOC file and extract the text content for 
           </Card>
         </motion.div>
       </div>
+      
+      {/* AI Settings Modal */}
+      <Modal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        title="AI Settings"
+        size="md"
+        footer={
+          <div className="flex justify-end space-x-3">
+            <Button variant="outline" onClick={() => setShowSettings(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveSettings}>
+              Save Settings
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              OpenRouter API Key
+            </label>
+            <Input
+              type="password"
+              value={settingsForm.apiKey}
+              onChange={(e) => setSettingsForm(prev => ({ ...prev, apiKey: e.target.value }))}
+              placeholder={apiKey ? "••••••••" + apiKey.slice(-4) : "Enter your OpenRouter API key"}
+              variant="glass"
+            />
+            <p className="text-xs text-slate-400 mt-1">
+              Leave blank to use the default API key
+            </p>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              AI Model
+            </label>
+            <select
+              value={settingsForm.modelId}
+              onChange={(e) => setSettingsForm(prev => ({ ...prev, modelId: e.target.value }))}
+              className="w-full px-4 py-3 bg-dark-800/30 border-slate-600/50 backdrop-blur-xl border rounded-lg focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            >
+              <option value="deepseek/deepseek-r1-0528:free" className="bg-dark-800 text-slate-100">
+                DeepSeek R1 (Default)
+              </option>
+              <option value="anthropic/claude-3-haiku:beta" className="bg-dark-800 text-slate-100">
+                Claude 3 Haiku
+              </option>
+              <option value="google/gemma-7b-it:free" className="bg-dark-800 text-slate-100">
+                Google Gemma 7B
+              </option>
+              <option value="meta-llama/llama-3-8b-instruct:free" className="bg-dark-800 text-slate-100">
+                Llama 3 8B
+              </option>
+            </select>
+            <p className="text-xs text-slate-400 mt-1">
+              Select the AI model to use for analysis
+            </p>
+          </div>
+          
+          <div className="bg-gradient-to-r from-primary-900/20 to-secondary-900/20 border border-primary-600/30 rounded-xl p-4">
+            <h3 className="text-sm font-medium text-primary-300 mb-2">About OpenRouter</h3>
+            <p className="text-xs text-slate-400">
+              OpenRouter provides access to various AI models through a unified API. 
+              You can get your own API key at <a href="https://openrouter.ai" target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:text-primary-300">openrouter.ai</a>.
+            </p>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }
